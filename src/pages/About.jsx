@@ -8,7 +8,7 @@ const team = [
   { name: 'Bilal Khan', role: 'Lead Developer', initial: 'B' },
   { name: 'Zara Ahmed', role: 'Marketing Lead', initial: 'Z' },
 ]
-
+//done updated
 const values = [
   { icon: '🤝', title: 'Trust', desc: 'We build verified connections between creators and brands.' },
   { icon: '⚡', title: 'Speed', desc: 'From opportunity to collaboration in minutes.' },
