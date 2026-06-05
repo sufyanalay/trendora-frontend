@@ -1,16 +1,78 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import axios from '../../../utils/axios'
 
 export default function DashboardLayout({ children, links }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen]       = useState(false)
+  const [notifications, setNotifications]   = useState([])
+  const [notifOpen, setNotifOpen]           = useState(false)
+  const [unreadCount, setUnreadCount]       = useState(0)
+  const notifRef                            = useRef(null)
+
   const { user, logout } = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
+  const location         = useLocation()
+  const navigate         = useNavigate()
+
+  useEffect(() => {
+    fetchNotifications()
+    // Har 30 second mein refresh
+    const interval = setInterval(fetchNotifications, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Outside click se close karo
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get('/notifications')
+      setNotifications(res.data)
+      setUnreadCount(res.data.filter(n => !n.isRead).length)
+    } catch {
+      setNotifications([])
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    try {
+      await axios.put('/notifications/read-all')
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      setUnreadCount(0)
+    } catch {}
+  }
+
+  const handleNotifClick = async (notif) => {
+    try {
+      await axios.put(`/notifications/${notif._id}/read`)
+      setNotifications(prev => prev.map(n =>
+        n._id === notif._id ? { ...n, isRead: true } : n
+      ))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+      setNotifOpen(false)
+      if (notif.link) navigate(notif.link)
+    } catch {}
+  }
 
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  const notifIcons = {
+    application:   '📋',
+    collaboration: '🤝',
+    payment:       '💰',
+    message:       '💬',
+    system:        '🔔',
   }
 
   return (
@@ -85,20 +147,108 @@ export default function DashboardLayout({ children, links }) {
 
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white border-b border-border px-4 sm:px-6 py-4 flex items-center justify-between">
+
+          {/* Mobile menu button */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg text-muted hover:bg-surface"
           >
             ☰
           </button>
+
           <div className="flex items-center gap-3 ml-auto">
-            <button className="relative p-2 rounded-xl hover:bg-surface text-muted">
-              🔔
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-bold text-sm">
-              {user?.fullName?.[0] || 'U'}
+
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="relative p-2 rounded-xl hover:bg-surface text-muted transition-colors"
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown */}
+              {notifOpen && (
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-purple border border-border z-50 overflow-hidden">
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <h3 className="font-bold text-secondary text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs text-primary font-semibold hover:underline"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-8 text-muted">
+                        <div className="text-3xl mb-2">🔔</div>
+                        <p className="text-sm">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div
+                          key={n._id}
+                          onClick={() => handleNotifClick(n)}
+                          className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-surface transition-colors border-b border-border last:border-0 ${
+                            !n.isRead ? 'bg-primary-light' : ''
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white border border-border flex items-center justify-center text-sm flex-shrink-0 shadow-sm">
+                            {notifIcons[n.type] || '🔔'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-secondary line-clamp-1">{n.title}</p>
+                            <p className="text-xs text-muted mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-xs text-muted mt-1">
+                              {new Date(n.createdAt).toLocaleDateString('en-PK', {
+                                day: 'numeric', month: 'short',
+                                hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          {!n.isRead && (
+                            <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-3 border-t border-border text-center">
+                      <p className="text-xs text-muted">
+                        {unreadCount} unread · {notifications.length} total
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* User Avatar */}
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-bold text-sm">
+                {user?.fullName?.[0] || 'U'}
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-xs font-bold text-secondary">{user?.fullName}</p>
+                <p className="text-xs text-muted capitalize">{user?.role}</p>
+              </div>
+            </div>
+
           </div>
         </header>
 
