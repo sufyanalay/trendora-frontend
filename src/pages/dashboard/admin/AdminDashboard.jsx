@@ -124,29 +124,7 @@ const [stats, setStats] = useState({
             <div className="text-xs text-muted mt-0.5">{s.label}</div>
           </Link>
         ))}
-        {/* Extra Stats */}
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-  <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex items-center gap-4">
-    <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-2xl">⏳</div>
-    <div>
-      <div className="text-2xl font-black text-yellow-700">{stats.pendingPayments}</div>
-      <div className="text-sm text-yellow-600 font-medium">Payments Awaiting Action</div>
-      <Link to="/admin/payments" className="text-xs text-yellow-700 font-bold hover:underline">
-        Review Now →
-      </Link>
-    </div>
-  </div>
-  <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-center gap-4">
-    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-2xl">🤝</div>
-    <div>
-      <div className="text-2xl font-black text-green-700">{stats.collaborations}</div>
-      <div className="text-sm text-green-600 font-medium">Total Collaborations</div>
-      <Link to="/admin/collaborations" className="text-xs text-green-700 font-bold hover:underline">
-        View All →
-      </Link>
-    </div>
-  </div>
-</div>
+        
       </div>
 
       {/* Main Grid */}
