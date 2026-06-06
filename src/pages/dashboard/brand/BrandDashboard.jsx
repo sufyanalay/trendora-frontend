@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext'
 import DashboardLayout from '../shared/DashboardLayout'
 import { Link } from 'react-router-dom'
 import axios from '../../../utils/axios'
+import socket from '../../../utils/socket'
 
 export const brandLinks = [
   { to: '/brand/dashboard',        icon: '📊', label: 'Dashboard' },
@@ -30,39 +31,52 @@ export default function BrandDashboard() {
   const [notifications, setNotifications]   = useState([])
   const [loading, setLoading]               = useState(true)
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => {
+  fetchAll()
 
-  const fetchAll = async () => {
-    try {
-      const [oppsRes, appsRes, collabsRes, notifsRes, paymentsRes] = await Promise.all([
-        axios.get('/opportunities/my/list'),
-        axios.get('/applications/brand'),
-        axios.get('/collaborations/brand'),
-        axios.get('/notifications'),
-        axios.get('/payments/brand'),
-      ])
+  socket.on('new_notification', () => {
+    fetchAll()
+  })
 
-      setOpportunities(oppsRes.data.slice(0, 3))
-      setApplications(appsRes.data.slice(0, 5))
-      setCollaborations(collabsRes.data)
-      setNotifications(notifsRes.data.slice(0, 5))
+  return () => socket.off('new_notification')
+}, [])
+ const fetchAll = async () => {
+  try {
+    const [oppsRes, appsRes, collabsRes, notifsRes, paymentsRes] = await Promise.all([
+      axios.get('/opportunities/my/list'),
+      axios.get('/applications/brand'),
+      axios.get('/collaborations/brand'),
+      axios.get('/notifications'),
+      axios.get('/payments/brand'),
+    ])
 
-      const totalSpent = paymentsRes.data
-        .filter(p => p.status === 'released')
-        .reduce((a, p) => a + (p.totalAmount || 0), 0)
+    setOpportunities(oppsRes.data.slice(0, 3))
+    setApplications(appsRes.data.slice(0, 5))
+    setCollaborations(collabsRes.data)
+    setNotifications(notifsRes.data.slice(0, 5))
 
-      setStats({
-        opportunities: oppsRes.data.length,
-        applications:  appsRes.data.filter(a => a.status === 'pending').length,
-        active:        collabsRes.data.filter(c => ['active', 'submitted'].includes(c.status)).length,
-        spent:         totalSpent,
-      })
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    const totalSpent = paymentsRes.data
+      .filter(p => p.status === 'released')
+      .reduce((a, p) => a + (p.totalAmount || 0), 0)
+
+    const pendingPayments = paymentsRes.data
+      .filter(p => ['pending', 'screenshot_uploaded'].includes(p.status))
+      .reduce((a, p) => a + (p.totalAmount || 0), 0)
+
+    setStats({
+      opportunities: oppsRes.data.filter(o => o.status === 'active').length,
+      applications:  appsRes.data.filter(a => a.status === 'pending' || a.status === 'countered').length,
+      active:        collabsRes.data.filter(c => ['active', 'submitted', 'revision'].includes(c.status)).length,
+      spent:         totalSpent,
+      pending:       pendingPayments,
+    })
+
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setLoading(false)
   }
+}
 
   const notifIcons = {
     application:   '📋',
@@ -98,12 +112,12 @@ export default function BrandDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Active Opportunities',  value: stats.opportunities, icon: '📢', color: 'bg-blue-50 text-blue-700',   sub: 'View All →',      to: '/brand/opportunities' },
-          { label: 'Pending Applications',  value: stats.applications,  icon: '👥', color: 'bg-yellow-50 text-yellow-700', sub: 'Review →',       to: '/brand/applications' },
-          { label: 'Active Collaborations', value: stats.active,         icon: '🤝', color: 'bg-green-50 text-green-700',  sub: 'View Projects →', to: '/brand/collaborations' },
-          { label: 'Total Spent',           value: `PKR ${stats.spent.toLocaleString()}`, icon: '💳', color: 'bg-purple-50 text-primary', sub: 'View Payments →', to: '/brand/payments' },
-        ].map((s, i) => (
+     {[
+  { label: 'Active Opportunities', value: stats.opportunities,                         icon: '📢', color: 'bg-blue-50 text-blue-700',     sub: 'View All →',        to: '/brand/opportunities' },
+  { label: 'Pending Applications', value: stats.applications,                          icon: '👥', color: 'bg-yellow-50 text-yellow-700', sub: 'Review →',          to: '/brand/applications' },
+  { label: 'Active Collabs',       value: stats.active,                                icon: '🤝', color: 'bg-green-50 text-green-700',   sub: 'View Projects →',   to: '/brand/collaborations' },
+  { label: 'Total Spent',          value: `PKR ${stats.spent.toLocaleString()}`,       icon: '💳', color: 'bg-purple-50 text-primary',    sub: 'View Payments →',   to: '/brand/payments' },
+].map((s, i) =>  (
           <div key={i} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-purple transition-all">
             <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-xl mb-3`}>
               {s.icon}

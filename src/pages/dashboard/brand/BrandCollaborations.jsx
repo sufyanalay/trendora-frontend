@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import DashboardLayout from '../shared/DashboardLayout'
 import { brandLinks } from './BrandDashboard'
 import axios from '../../../utils/axios'
+import socket from '../../../utils/socket'
 
 const statusColors = {
   active:    'bg-blue-50 text-blue-700',
@@ -20,9 +21,49 @@ export default function BrandCollaborations() {
   const [revisionModal, setRevisionModal]   = useState(null)
   const [revisionNote, setRevisionNote]     = useState('')
   const [toast, setToast]                   = useState('')
+  const messagesEndRef                      = useRef(null)
 
-  useEffect(() => { fetchCollaborations() }, [])
-  useEffect(() => { if (selected) fetchMessages(selected._id) }, [selected])
+  // ─── Fetch Collaborations ─────────────────────────
+  useEffect(() => {
+    fetchCollaborations()
+
+    // Real time — status update hone par refresh
+    socket.on('new_notification', () => {
+      fetchCollaborations()
+    })
+
+    return () => {
+      socket.off('new_notification')
+    }
+  }, [])
+
+  // ─── Selected Collaboration Change ───────────────
+  useEffect(() => {
+    if (!selected) return
+
+    fetchMessages(selected._id)
+
+    // Collaboration room join karo
+    socket.emit('join_collaboration', selected._id)
+
+    // Real time messages
+    socket.on('new_message', (msg) => {
+      setMessages(prev => {
+        const exists = prev.find(m => m._id === msg._id)
+        if (exists) return prev
+        return [...prev, msg]
+      })
+    })
+
+    return () => {
+      socket.off('new_message')
+    }
+  }, [selected])
+
+  // ─── Auto Scroll ─────────────────────────────────
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const fetchCollaborations = async () => {
     try {
@@ -49,12 +90,20 @@ export default function BrandCollaborations() {
     setTimeout(() => setToast(''), 3000)
   }
 
+  const handleSelectCollaboration = (c) => {
+    if (selected && selected._id !== c._id) {
+      socket.emit('leave_collaboration', selected._id)
+      socket.off('new_message')
+    }
+    setSelected(c)
+    setMessages([])
+  }
+
   const handleSendMsg = async (e) => {
     e.preventDefault()
     if (!newMsg.trim()) return
     try {
-      const res = await axios.post(`/messages/${selected._id}`, { message: newMsg })
-      setMessages(prev => [...prev, res.data])
+      await axios.post(`/messages/${selected._id}`, { message: newMsg })
       setNewMsg('')
     } catch {
       showToast('Failed to send message')
@@ -81,6 +130,9 @@ export default function BrandCollaborations() {
       setCollaborations(prev => prev.map(c =>
         c._id === revisionModal._id ? { ...c, status: 'revision', revisionNote } : c
       ))
+      if (selected?._id === revisionModal._id) {
+        setSelected(prev => ({ ...prev, status: 'revision', revisionNote }))
+      }
       showToast('🔄 Revision requested!')
       setRevisionModal(null)
       setRevisionNote('')
@@ -92,6 +144,7 @@ export default function BrandCollaborations() {
   return (
     <DashboardLayout links={brandLinks}>
 
+      {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-primary text-white text-sm font-semibold rounded-xl shadow-purple">
           {toast}
@@ -103,6 +156,9 @@ export default function BrandCollaborations() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-purple">
             <h3 className="font-bold text-secondary text-lg mb-1">Request Revision</h3>
+            <p className="text-sm text-muted mb-2">
+              for: <span className="font-semibold text-secondary">{revisionModal.creatorId?.fullName}</span>
+            </p>
             <p className="text-sm text-muted mb-5">Explain what changes are needed.</p>
             <textarea
               rows={4} placeholder="Describe the revision needed..."
@@ -110,7 +166,7 @@ export default function BrandCollaborations() {
               className="w-full px-4 py-3 text-sm border border-border rounded-xl focus:outline-none focus:border-primary resize-none mb-4"
             />
             <div className="flex gap-3">
-              <button onClick={() => setRevisionModal(null)}
+              <button onClick={() => { setRevisionModal(null); setRevisionNote('') }}
                 className="flex-1 py-2.5 border-2 border-border text-muted rounded-xl text-sm font-semibold hover:border-primary hover:text-primary transition-colors">
                 Cancel
               </button>
@@ -143,30 +199,30 @@ export default function BrandCollaborations() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* List */}
+          {/* Collaboration List */}
           <div className="space-y-4">
             {collaborations.map(c => (
               <div
                 key={c._id}
-                onClick={() => setSelected(c)}
+                onClick={() => handleSelectCollaboration(c)}
                 className={`bg-card rounded-2xl border shadow-card p-5 cursor-pointer transition-all hover:shadow-purple ${
                   selected?._id === c._id ? 'border-primary' : 'border-border'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center text-primary font-bold">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center text-primary font-bold flex-shrink-0">
                       {c.creatorId?.fullName?.[0] || 'C'}
                     </div>
-                    <div>
-                      <p className="font-bold text-secondary text-sm">{c.creatorId?.fullName}</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-secondary text-sm truncate">{c.creatorId?.fullName}</p>
                       <p className="text-xs text-muted line-clamp-1">{c.opportunityId?.title}</p>
                     </div>
                   </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColors[c.status]}`}>
-                    {c.status === 'active' ? 'In Progress'
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${statusColors[c.status]}`}>
+                    {c.status === 'active'    ? 'In Progress'
                       : c.status === 'submitted' ? 'Under Review'
-                      : c.status === 'revision' ? 'Revision'
+                      : c.status === 'revision'  ? 'Revision'
                       : c.status === 'completed' ? 'Completed'
                       : c.status}
                   </span>
@@ -186,9 +242,26 @@ export default function BrandCollaborations() {
                   </div>
                 )}
 
+                {/* Payment Status */}
+                {c.status === 'completed' && (
+                  <div className={`rounded-lg px-3 py-2 mb-3 ${
+                    c.paymentStatus === 'released'
+                      ? 'bg-green-50 border border-green-200'
+                      : 'bg-yellow-50 border border-yellow-200'
+                  }`}>
+                    <p className={`text-xs font-bold ${
+                      c.paymentStatus === 'released' ? 'text-green-700' : 'text-yellow-700'
+                    }`}>
+                      {c.paymentStatus === 'released'
+                        ? '💰 Payment Released to Creator'
+                        : '⏳ Awaiting Payment Release'}
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button
-                    onClick={e => { e.stopPropagation(); setSelected(c) }}
+                    onClick={e => { e.stopPropagation(); handleSelectCollaboration(c) }}
                     className="flex-1 py-2 bg-primary-light text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-colors"
                   >
                     💬 Chat
@@ -216,20 +289,27 @@ export default function BrandCollaborations() {
 
           {/* Chat Panel */}
           {selected ? (
-            <div className="bg-card rounded-2xl border border-border shadow-card flex flex-col h-[600px]">
+            <div className="bg-card rounded-2xl border border-border shadow-card flex flex-col h-[600px] sticky top-24">
+
+              {/* Chat Header */}
               <div className="p-4 border-b border-border flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center text-primary font-bold">
+                <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center text-primary font-bold flex-shrink-0">
                   {selected.creatorId?.fullName?.[0] || 'C'}
                 </div>
-                <div>
-                  <p className="font-bold text-secondary text-sm">{selected.creatorId?.fullName}</p>
-                  <p className="text-xs text-muted">{selected.opportunityId?.title}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-secondary text-sm truncate">{selected.creatorId?.fullName}</p>
+                  <p className="text-xs text-muted truncate">{selected.opportunityId?.title}</p>
                 </div>
-                <span className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[selected.status]}`}>
-                  {selected.status}
+                <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[selected.status]}`}>
+                  {selected.status === 'active'    ? 'In Progress'
+                    : selected.status === 'submitted' ? 'Under Review'
+                    : selected.status === 'revision'  ? 'Revision'
+                    : selected.status === 'completed' ? 'Completed'
+                    : selected.status}
                 </span>
               </div>
 
+              {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-center py-12 text-muted">
@@ -241,36 +321,43 @@ export default function BrandCollaborations() {
                     const isMe = msg.senderId?.role === 'brand'
                     return (
                       <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${
+                        <div className={`max-w-xs lg:max-w-sm px-4 py-2.5 rounded-2xl text-sm ${
                           isMe
                             ? 'bg-primary text-white rounded-br-sm'
-                            : 'bg-surface text-secondary rounded-bl-sm'
+                            : 'bg-surface text-secondary rounded-bl-sm border border-border'
                         }`}>
-                          <p>{msg.message}</p>
+                          <p className="break-words">{msg.message}</p>
                           <p className={`text-xs mt-1 ${isMe ? 'text-purple-200' : 'text-muted'}`}>
-                            {new Date(msg.createdAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.createdAt).toLocaleTimeString('en-PK', {
+                              hour: '2-digit', minute: '2-digit'
+                            })}
                           </p>
                         </div>
                       </div>
                     )
                   })
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
+              {/* Input */}
               <form onSubmit={handleSendMsg} className="p-4 border-t border-border flex gap-2">
                 <input
                   type="text" placeholder="Type a message..."
                   value={newMsg} onChange={e => setNewMsg(e.target.value)}
                   className="flex-1 px-4 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light"
                 />
-                <button type="submit"
-                  className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors">
+                <button
+                  type="submit"
+                  disabled={!newMsg.trim()}
+                  className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Send
                 </button>
               </form>
             </div>
           ) : (
-            <div className="bg-card rounded-2xl border border-border shadow-card flex items-center justify-center h-[600px]">
+            <div className="bg-card rounded-2xl border border-border shadow-card flex items-center justify-center h-[600px] sticky top-24">
               <div className="text-center text-muted">
                 <div className="text-5xl mb-3">💬</div>
                 <p className="font-medium">Select a collaboration</p>

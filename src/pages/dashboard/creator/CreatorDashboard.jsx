@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext'
 import DashboardLayout from '../shared/DashboardLayout'
 import { Link } from 'react-router-dom'
 import axios from '../../../utils/axios'
+import socket from '../../../utils/socket'
 
 export const creatorLinks = [
   { to: '/creator/dashboard',      icon: '📊', label: 'Dashboard' },
@@ -29,34 +30,63 @@ export default function CreatorDashboard() {
   const [payments, setPayments]             = useState([])
   const [loading, setLoading]               = useState(true)
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => {
+  fetchAll()
 
-  const fetchAll = async () => {
-    try {
-      const [oppsRes, collabsRes, notifsRes, paymentsRes] = await Promise.all([
-        axios.get('/opportunities'),
-        axios.get('/collaborations/creator'),
-        axios.get('/notifications'),
-        axios.get('/payments/creator'),
-      ])
+  // Real time update
+  socket.on('new_notification', () => {
+    fetchAll()
+  })
 
-      setOpportunities(oppsRes.data.slice(0, 3))
-      setCollaborations(collabsRes.data)
-      setNotifications(notifsRes.data.slice(0, 5))
-      setPayments(paymentsRes.data)
+  return () => socket.off('new_notification')
+}, [])
 
-      const totalEarnings  = paymentsRes.data.filter(p => p.status === 'released').reduce((a, p) => a + (p.creatorAmount || 0), 0)
-      const pendingEarnings = paymentsRes.data.filter(p => p.status === 'verified').reduce((a, p) => a + (p.creatorAmount || 0), 0)
-      const activeCollabs  = collabsRes.data.filter(c => c.status === 'active' || c.status === 'submitted').length
-      const completed      = collabsRes.data.filter(c => c.status === 'completed').length
+const fetchAll = async () => {
+  try {
+    const [oppsRes, collabsRes, notifsRes, paymentsRes, appsRes] = await Promise.all([
+      axios.get('/opportunities'),
+      axios.get('/collaborations/creator'),
+      axios.get('/notifications'),
+      axios.get('/payments/creator'),
+      axios.get('/applications/my'),
+    ])
 
-      setStats({ earnings: totalEarnings, pending: pendingEarnings, active: activeCollabs, completed })
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    setOpportunities(oppsRes.data.slice(0, 3))
+    setCollaborations(collabsRes.data)
+    setNotifications(notifsRes.data.slice(0, 5))
+    setPayments(paymentsRes.data)
+
+    const totalEarnings   = paymentsRes.data
+      .filter(p => p.status === 'released')
+      .reduce((a, p) => a + (p.creatorAmount || 0), 0)
+
+    const pendingEarnings = paymentsRes.data
+      .filter(p => p.status === 'verified')
+      .reduce((a, p) => a + (p.creatorAmount || 0), 0)
+
+    const activeCollabs   = collabsRes.data
+      .filter(c => c.status === 'active' || c.status === 'submitted' || c.status === 'revision').length
+
+    const completed       = collabsRes.data
+      .filter(c => c.status === 'completed').length
+
+    const pendingApps     = appsRes.data
+      .filter(a => a.status === 'pending' || a.status === 'countered').length
+
+    setStats({
+      earnings: totalEarnings,
+      pending:  pendingEarnings,
+      active:   activeCollabs,
+      completed,
+      pendingApps,
+    })
+
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setLoading(false)
   }
+}
 
   const statusColors = {
     active:    'bg-blue-50 text-blue-700',
@@ -93,12 +123,12 @@ export default function CreatorDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Earnings',    value: `PKR ${stats.earnings.toLocaleString()}`,  icon: '💰', color: 'bg-green-50',  text: 'text-green-700',  sub: 'View Earnings →',   to: '/creator/earnings' },
-          { label: 'Pending Earnings',  value: `PKR ${stats.pending.toLocaleString()}`,   icon: '⏳', color: 'bg-orange-50', text: 'text-orange-600', sub: 'View Details →',    to: '/creator/earnings' },
-          { label: 'Active Projects',   value: stats.active,                               icon: '🤝', color: 'bg-blue-50',   text: 'text-blue-700',   sub: 'View Projects →',   to: '/creator/collaborations' },
-          { label: 'Completed',         value: stats.completed,                            icon: '✅', color: 'bg-purple-50', text: 'text-primary',    sub: 'View All →',        to: '/creator/collaborations' },
-        ].map((s, i) => (
+       {[
+  { label: 'Total Earnings',    value: `PKR ${stats.earnings.toLocaleString()}`,  icon: '💰', color: 'bg-green-50 text-green-700',   sub: 'View Earnings →',     to: '/creator/earnings' },
+  { label: 'Pending Earnings',  value: `PKR ${stats.pending.toLocaleString()}`,   icon: '⏳', color: 'bg-orange-50 text-orange-600', sub: 'View Details →',      to: '/creator/earnings' },
+  { label: 'Active Projects',   value: stats.active,                               icon: '🤝', color: 'bg-blue-50 text-blue-700',     sub: 'View Projects →',     to: '/creator/collaborations' },
+  { label: 'Pending Apps',      value: stats.pendingApps || 0,                     icon: '📋', color: 'bg-purple-50 text-primary',    sub: 'View Applications →', to: '/creator/applications' },
+].map((s, i) => (
           <div key={i} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-purple transition-all">
             <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-xl mb-3`}>
               {s.icon}
