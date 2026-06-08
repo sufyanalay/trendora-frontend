@@ -3,17 +3,20 @@ import DashboardLayout from '../shared/DashboardLayout'
 import { creatorLinks } from './CreatorDashboard'
 import axios from '../../../utils/axios'
 import socket from '../../../utils/socket'
+import { useAuth } from '../../../context/AuthContext'
 
 const statusColors = {
-  active:    'bg-blue-50 text-blue-700',
-  submitted: 'bg-yellow-50 text-yellow-700',
-  completed: 'bg-green-50 text-green-700',
-  revision:  'bg-orange-50 text-orange-700',
-  cancelled: 'bg-red-50 text-red-600',
-  disputed:  'bg-red-50 text-red-600',
+  payment_pending: 'bg-gray-100 text-gray-600',
+  active:          'bg-blue-50 text-blue-700',
+  submitted:       'bg-yellow-50 text-yellow-700',
+  completed:       'bg-green-50 text-green-700',
+  revision:        'bg-orange-50 text-orange-700',
+  cancelled:       'bg-red-50 text-red-600',
+  disputed:        'bg-red-50 text-red-600',
 }
 
 export default function ActiveCollaborations() {
+  const { user } = useAuth()
   const [collaborations, setCollaborations] = useState([])
   const [loading, setLoading]               = useState(true)
   const [selected, setSelected]             = useState(null)
@@ -24,11 +27,10 @@ export default function ActiveCollaborations() {
   const [toast, setToast]                   = useState('')
   const messagesEndRef                      = useRef(null)
 
-  // ─── Fetch Collaborations ─────────────────────────
+  // ─── Fetch + Socket Setup ─────────────────────────
   useEffect(() => {
     fetchCollaborations()
 
-    // Real time — collaboration status update
     socket.on('new_notification', () => {
       fetchCollaborations()
     })
@@ -38,16 +40,17 @@ export default function ActiveCollaborations() {
     }
   }, [])
 
-  // ─── Selected Collaboration Change ───────────────
+  // ─── Selected Change ─────────────────────────────
   useEffect(() => {
     if (!selected) return
 
-    fetchMessages(selected._id)
+    // Sirf active collaboration mein messages fetch karo
+    if (selected.chatUnlocked) {
+      fetchMessages(selected._id)
+    }
 
-    // Collaboration room join karo
     socket.emit('join_collaboration', selected._id)
 
-    // Real time messages
     socket.on('new_message', (msg) => {
       setMessages(prev => {
         const exists = prev.find(m => m._id === msg._id)
@@ -61,7 +64,7 @@ export default function ActiveCollaborations() {
     }
   }, [selected])
 
-  // ─── Auto Scroll to Bottom ───────────────────────
+  // ─── Auto Scroll ─────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -91,15 +94,23 @@ export default function ActiveCollaborations() {
     setTimeout(() => setToast(''), 3000)
   }
 
+  const handleSelectCollaboration = (c) => {
+    if (selected && selected._id !== c._id) {
+      socket.emit('leave_collaboration', selected._id)
+      socket.off('new_message')
+    }
+    setSelected(c)
+    setMessages([])
+  }
+
   const handleSendMsg = async (e) => {
     e.preventDefault()
     if (!newMsg.trim()) return
     try {
-      const res = await axios.post(`/messages/${selected._id}`, { message: newMsg })
-      // Socket se already aayega — bas clear karo input
+      await axios.post(`/messages/${selected._id}`, { message: newMsg })
       setNewMsg('')
-    } catch {
-      showToast('Failed to send message')
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to send message')
     }
   }
 
@@ -123,22 +134,12 @@ export default function ActiveCollaborations() {
     }
   }
 
-  const handleSelectCollaboration = (c) => {
-    // Previous room leave
-    if (selected && selected._id !== c._id) {
-      socket.emit('leave_collaboration', selected._id)
-      socket.off('new_message')
-    }
-    setSelected(c)
-    setMessages([])
-  }
-
   return (
     <DashboardLayout links={creatorLinks}>
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-primary text-white text-sm font-semibold rounded-xl shadow-purple animate-fade-in">
+        <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-primary text-white text-sm font-semibold rounded-xl shadow-purple">
           {toast}
         </div>
       )}
@@ -194,7 +195,7 @@ export default function ActiveCollaborations() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Collaboration List */}
+          {/* List */}
           <div className="space-y-4">
             {collaborations.map(c => (
               <div
@@ -214,7 +215,8 @@ export default function ActiveCollaborations() {
                     </p>
                   </div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${statusColors[c.status]}`}>
-                    {c.status === 'active'    ? 'In Progress'
+                    {c.status === 'payment_pending' ? '💳 Payment Pending'
+                      : c.status === 'active'    ? 'In Progress'
                       : c.status === 'submitted' ? 'Under Review'
                       : c.status === 'revision'  ? 'Revision'
                       : c.status === 'completed' ? 'Completed'
@@ -228,6 +230,16 @@ export default function ActiveCollaborations() {
                   <span>📱 {c.opportunityId?.platform}</span>
                 </div>
 
+                {/* Payment Pending Notice */}
+                {c.status === 'payment_pending' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-xs font-bold text-yellow-700">⏳ Waiting for brand payment</p>
+                    <p className="text-xs text-yellow-600 mt-0.5">
+                      Chat will unlock after admin verifies payment.
+                    </p>
+                  </div>
+                )}
+
                 {/* Revision Note */}
                 {c.status === 'revision' && c.revisionNote && (
                   <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mb-3">
@@ -236,7 +248,7 @@ export default function ActiveCollaborations() {
                   </div>
                 )}
 
-                {/* Payment Status */}
+                {/* Payment released */}
                 {c.status === 'completed' && (
                   <div className={`rounded-lg px-3 py-2 mb-3 ${
                     c.paymentStatus === 'released'
@@ -256,9 +268,13 @@ export default function ActiveCollaborations() {
                 <div className="flex gap-2">
                   <button
                     onClick={e => { e.stopPropagation(); handleSelectCollaboration(c) }}
-                    className="flex-1 py-2 bg-primary-light text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-colors"
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-colors ${
+                      c.chatUnlocked
+                        ? 'bg-primary-light text-primary hover:bg-primary hover:text-white'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
                   >
-                    💬 Chat
+                    {c.chatUnlocked ? '💬 Chat' : '🔒 Chat Locked'}
                   </button>
                   {(c.status === 'active' || c.status === 'revision') && (
                     <button
@@ -289,7 +305,8 @@ export default function ActiveCollaborations() {
                   <p className="text-xs text-muted truncate">{selected.opportunityId?.title}</p>
                 </div>
                 <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[selected.status]}`}>
-                  {selected.status === 'active'    ? 'In Progress'
+                  {selected.status === 'payment_pending' ? '💳 Payment Pending'
+                    : selected.status === 'active'    ? 'In Progress'
                     : selected.status === 'submitted' ? 'Under Review'
                     : selected.status === 'revision'  ? 'Revision'
                     : selected.status === 'completed' ? 'Completed'
@@ -297,16 +314,26 @@ export default function ActiveCollaborations() {
                 </span>
               </div>
 
-              {/* Messages */}
+              {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
+
+                {/* Chat Locked */}
+                {!selected.chatUnlocked ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="text-5xl mb-3">🔒</div>
+                    <p className="font-bold text-secondary">Chat Locked</p>
+                    <p className="text-xs text-muted mt-2 max-w-xs">
+                      Waiting for brand to complete payment. Chat will unlock after admin verifies payment.
+                    </p>
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="text-center py-12 text-muted">
                     <div className="text-4xl mb-2">💬</div>
                     <p className="text-sm">No messages yet. Say hello!</p>
                   </div>
                 ) : (
                   messages.map(msg => {
-                    const isMe = msg.senderId?.role === 'creator'
+                    const isMe = msg.senderId?._id?.toString() === user?._id?.toString()
                     return (
                       <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-xs lg:max-w-sm px-4 py-2.5 rounded-2xl text-sm ${
@@ -325,26 +352,36 @@ export default function ActiveCollaborations() {
                     )
                   })
                 )}
-                {/* Auto scroll anchor */}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
-              <form onSubmit={handleSendMsg} className="p-4 border-t border-border flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={newMsg} onChange={e => setNewMsg(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light"
-                />
-                <button
-                  type="submit"
-                  disabled={!newMsg.trim()}
-                  className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Send
-                </button>
-              </form>
+              {/* Input — locked ya unlocked */}
+              {!selected.chatUnlocked ? (
+                <div className="p-4 border-t border-border">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-border">
+                    <span>🔒</span>
+                    <p className="text-sm text-muted">
+                      Chat will unlock after payment is verified by admin
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSendMsg} className="p-4 border-t border-border flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={newMsg} onChange={e => setNewMsg(e.target.value)}
+                    className="flex-1 px-4 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newMsg.trim()}
+                    className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Send
+                  </button>
+                </form>
+              )}
             </div>
           ) : (
             <div className="bg-card rounded-2xl border border-border shadow-card flex items-center justify-center h-[600px] sticky top-24">

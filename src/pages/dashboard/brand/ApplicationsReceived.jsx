@@ -53,17 +53,15 @@ export default function ApplicationsReceived() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  const handleRespond = async (id, action) => {
+ const handleRespond = async (id, action) => {
   try {
     if (action === 'accept') {
-      // Pehle application accept karo
       await axios.put(`/applications/${id}/respond`, { action })
-      // Phir collaboration create karo
-      await axios.post('/collaborations', { applicationId: id })
+      const res = await axios.post('/collaborations', { applicationId: id })
       setApplications(prev => prev.map(a =>
         a._id === id ? { ...a, status: 'accepted' } : a
       ))
-      showToast('✅ Collaboration started! Chat is now unlocked.')
+      showToast('✅ Application accepted! Please complete payment.')
     } else {
       await axios.put(`/applications/${id}/respond`, { action })
       setApplications(prev => prev.map(a =>
@@ -75,7 +73,6 @@ export default function ApplicationsReceived() {
     showToast(err.response?.data?.message || 'Failed')
   }
 }
-
   const handleCounter = async () => {
     if (!counterAmount) return
     try {

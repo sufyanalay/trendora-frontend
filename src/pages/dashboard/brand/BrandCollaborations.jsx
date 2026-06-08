@@ -3,16 +3,20 @@ import DashboardLayout from '../shared/DashboardLayout'
 import { brandLinks } from './BrandDashboard'
 import axios from '../../../utils/axios'
 import socket from '../../../utils/socket'
+import { useAuth } from '../../../context/AuthContext'
+import { Link } from 'react-router-dom'
 
 const statusColors = {
-  active:    'bg-blue-50 text-blue-700',
-  submitted: 'bg-yellow-50 text-yellow-700',
-  completed: 'bg-green-50 text-green-700',
-  revision:  'bg-orange-50 text-orange-700',
-  cancelled: 'bg-red-50 text-red-600',
+  payment_pending: 'bg-gray-100 text-gray-600',
+  active:          'bg-blue-50 text-blue-700',
+  submitted:       'bg-yellow-50 text-yellow-700',
+  completed:       'bg-green-50 text-green-700',
+  revision:        'bg-orange-50 text-orange-700',
+  cancelled:       'bg-red-50 text-red-600',
 }
 
 export default function BrandCollaborations() {
+  const { user } = useAuth()
   const [collaborations, setCollaborations] = useState([])
   const [loading, setLoading]               = useState(true)
   const [selected, setSelected]             = useState(null)
@@ -23,30 +27,16 @@ export default function BrandCollaborations() {
   const [toast, setToast]                   = useState('')
   const messagesEndRef                      = useRef(null)
 
-  // ─── Fetch Collaborations ─────────────────────────
   useEffect(() => {
     fetchCollaborations()
-
-    // Real time — status update hone par refresh
-    socket.on('new_notification', () => {
-      fetchCollaborations()
-    })
-
-    return () => {
-      socket.off('new_notification')
-    }
+    socket.on('new_notification', () => { fetchCollaborations() })
+    return () => { socket.off('new_notification') }
   }, [])
 
-  // ─── Selected Collaboration Change ───────────────
   useEffect(() => {
     if (!selected) return
-
-    fetchMessages(selected._id)
-
-    // Collaboration room join karo
+    if (selected.chatUnlocked) fetchMessages(selected._id)
     socket.emit('join_collaboration', selected._id)
-
-    // Real time messages
     socket.on('new_message', (msg) => {
       setMessages(prev => {
         const exists = prev.find(m => m._id === msg._id)
@@ -54,13 +44,9 @@ export default function BrandCollaborations() {
         return [...prev, msg]
       })
     })
-
-    return () => {
-      socket.off('new_message')
-    }
+    return () => { socket.off('new_message') }
   }, [selected])
 
-  // ─── Auto Scroll ─────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -105,8 +91,8 @@ export default function BrandCollaborations() {
     try {
       await axios.post(`/messages/${selected._id}`, { message: newMsg })
       setNewMsg('')
-    } catch {
-      showToast('Failed to send message')
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to send message')
     }
   }
 
@@ -117,7 +103,7 @@ export default function BrandCollaborations() {
         c._id === id ? { ...c, status: 'completed' } : c
       ))
       if (selected?._id === id) setSelected(prev => ({ ...prev, status: 'completed' }))
-      showToast('✅ Work approved! Payment will be released.')
+      showToast('✅ Work approved! Admin will release payment soon.')
     } catch {
       showToast('Failed to approve')
     }
@@ -199,7 +185,7 @@ export default function BrandCollaborations() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Collaboration List */}
+          {/* List */}
           <div className="space-y-4">
             {collaborations.map(c => (
               <div
@@ -220,7 +206,8 @@ export default function BrandCollaborations() {
                     </div>
                   </div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${statusColors[c.status]}`}>
-                    {c.status === 'active'    ? 'In Progress'
+                    {c.status === 'payment_pending' ? '💳 Pay Now'
+                      : c.status === 'active'    ? 'In Progress'
                       : c.status === 'submitted' ? 'Under Review'
                       : c.status === 'revision'  ? 'Revision'
                       : c.status === 'completed' ? 'Completed'
@@ -234,6 +221,16 @@ export default function BrandCollaborations() {
                   <span>📱 {c.opportunityId?.platform}</span>
                 </div>
 
+                {/* Payment Pending */}
+                {c.status === 'payment_pending' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-xs font-bold text-yellow-700">💳 Payment Required</p>
+                    <p className="text-xs text-yellow-600 mt-0.5">
+                      Complete payment to unlock collaboration and chat.
+                    </p>
+                  </div>
+                )}
+
                 {/* Submitted Work */}
                 {c.status === 'submitted' && c.submittedWork && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
@@ -242,7 +239,7 @@ export default function BrandCollaborations() {
                   </div>
                 )}
 
-                {/* Payment Status */}
+                {/* Completed */}
                 {c.status === 'completed' && (
                   <div className={`rounded-lg px-3 py-2 mb-3 ${
                     c.paymentStatus === 'released'
@@ -260,12 +257,22 @@ export default function BrandCollaborations() {
                 )}
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={e => { e.stopPropagation(); handleSelectCollaboration(c) }}
-                    className="flex-1 py-2 bg-primary-light text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-colors"
-                  >
-                    💬 Chat
-                  </button>
+                  {c.status === 'payment_pending' ? (
+                    <Link
+                      to="/brand/payments"
+                      onClick={e => e.stopPropagation()}
+                      className="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-colors text-center"
+                    >
+                      💳 Pay Now
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={e => { e.stopPropagation(); handleSelectCollaboration(c) }}
+                      className="flex-1 py-2 bg-primary-light text-primary text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-colors"
+                    >
+                      💬 Chat
+                    </button>
+                  )}
                   {c.status === 'submitted' && (
                     <>
                       <button
@@ -291,7 +298,7 @@ export default function BrandCollaborations() {
           {selected ? (
             <div className="bg-card rounded-2xl border border-border shadow-card flex flex-col h-[600px] sticky top-24">
 
-              {/* Chat Header */}
+              {/* Header */}
               <div className="p-4 border-b border-border flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center text-primary font-bold flex-shrink-0">
                   {selected.creatorId?.fullName?.[0] || 'C'}
@@ -301,7 +308,8 @@ export default function BrandCollaborations() {
                   <p className="text-xs text-muted truncate">{selected.opportunityId?.title}</p>
                 </div>
                 <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[selected.status]}`}>
-                  {selected.status === 'active'    ? 'In Progress'
+                  {selected.status === 'payment_pending' ? '💳 Payment Pending'
+                    : selected.status === 'active'    ? 'In Progress'
                     : selected.status === 'submitted' ? 'Under Review'
                     : selected.status === 'revision'  ? 'Revision'
                     : selected.status === 'completed' ? 'Completed'
@@ -311,14 +319,30 @@ export default function BrandCollaborations() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
+
+                {/* Chat Locked */}
+                {!selected.chatUnlocked ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="text-5xl mb-3">💳</div>
+                    <p className="font-bold text-secondary">Payment Required</p>
+                    <p className="text-xs text-muted mt-2 max-w-xs">
+                      Complete payment to unlock this chat and start collaborating.
+                    </p>
+                    <Link
+                      to="/brand/payments"
+                      className="mt-4 px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors"
+                    >
+                      Pay Now →
+                    </Link>
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="text-center py-12 text-muted">
                     <div className="text-4xl mb-2">💬</div>
                     <p className="text-sm">No messages yet. Say hello!</p>
                   </div>
                 ) : (
                   messages.map(msg => {
-                    const isMe = msg.senderId?.role === 'brand'
+                    const isMe = msg.senderId?._id?.toString() === user?._id?.toString()
                     return (
                       <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-xs lg:max-w-sm px-4 py-2.5 rounded-2xl text-sm ${
@@ -341,20 +365,31 @@ export default function BrandCollaborations() {
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSendMsg} className="p-4 border-t border-border flex gap-2">
-                <input
-                  type="text" placeholder="Type a message..."
-                  value={newMsg} onChange={e => setNewMsg(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light"
-                />
-                <button
-                  type="submit"
-                  disabled={!newMsg.trim()}
-                  className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Send
-                </button>
-              </form>
+              {!selected.chatUnlocked ? (
+                <div className="p-4 border-t border-border">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-yellow-50 rounded-xl border border-yellow-200">
+                    <span>💳</span>
+                    <p className="text-sm text-yellow-700 font-medium">
+                      Complete payment to unlock chat
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSendMsg} className="p-4 border-t border-border flex gap-2">
+                  <input
+                    type="text" placeholder="Type a message..."
+                    value={newMsg} onChange={e => setNewMsg(e.target.value)}
+                    className="flex-1 px-4 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newMsg.trim()}
+                    className="px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Send
+                  </button>
+                </form>
+              )}
             </div>
           ) : (
             <div className="bg-card rounded-2xl border border-border shadow-card flex items-center justify-center h-[600px] sticky top-24">
