@@ -9,26 +9,36 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('token')
-      const saved = localStorage.getItem('user')
+const initAuth = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    setLoading(false)
+    return
+  }
+  try {
+    const res = await axios.get('/auth/me')
+    setUser(res.data)
 
-      if (token && saved) {
-        try {
-          const res = await axios.get('/auth/me')
-          setUser(res.data)
+    // ✅ Connect hone ke baad join karo
+    socket.connect()
+    socket.on('connect', () => {
+      socket.emit('join', res.data._id.toString())
+      console.log('Joined room:', res.data._id.toString())
+    })
 
-          // ✅ Socket connect + user room join
-          socket.connect()
-          socket.emit('join', res.data._id)
-        } catch (err) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          setUser(null)
-        }
-      }
-      setLoading(false)
+    // Agar already connected hai
+    if (socket.connected) {
+      socket.emit('join', res.data._id.toString())
     }
+
+  } catch (err) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setUser(null)
+  } finally {
+    setLoading(false)
+  }
+}
 
     initAuth()
   }, [])
@@ -38,11 +48,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data))
     setUser(res.data)
-
-    // ✅ Socket connect
     socket.connect()
     socket.emit('join', res.data._id)
-
     return res.data
   }
 
@@ -51,10 +58,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data))
     setUser(res.data)
-
     socket.connect()
     socket.emit('join', res.data._id)
-
     return res.data
   }
 

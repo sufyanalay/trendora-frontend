@@ -46,13 +46,21 @@ import Disputes             from './pages/dashboard/admin/Disputes'
 // Protected Route
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth()
+
+  // ✅ Loading ke dauran kuch mat karo — spinner dikhao
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-surface">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-muted text-sm">Loading...</p>
+      </div>
     </div>
   )
+
+  // ✅ Loading khatam hone ke baad check karo
   if (!user) return <Navigate to="/login" replace />
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" replace />
+
   return children
 }
 

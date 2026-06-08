@@ -27,19 +27,38 @@ export default function ActiveCollaborations() {
   const [toast, setToast]                   = useState('')
   const messagesEndRef                      = useRef(null)
 
-  // ─── Fetch + Socket Setup ─────────────────────────
-  useEffect(() => {
+useEffect(() => {
+  fetchCollaborations()
+
+  // ✅ Notification aaye to refresh karo
+  socket.on('new_notification', () => {
     fetchCollaborations()
+  })
 
-    socket.on('new_notification', () => {
-      fetchCollaborations()
+  // ✅ Collaboration update — chat unlock
+  socket.on('collaboration_updated', (data) => {
+    console.log('collaboration_updated received:', data)
+
+    setCollaborations(prev => prev.map(c =>
+      c._id.toString() === data.collaborationId.toString()
+        ? { ...c, chatUnlocked: data.chatUnlocked, status: data.status }
+        : c
+    ))
+
+    setSelected(prev => {
+      if (!prev) return prev
+      if (prev._id.toString() === data.collaborationId.toString()) {
+        return { ...prev, chatUnlocked: data.chatUnlocked, status: data.status }
+      }
+      return prev
     })
+  })
 
-    return () => {
-      socket.off('new_notification')
-    }
-  }, [])
-
+  return () => {
+    socket.off('new_notification')
+    socket.off('collaboration_updated')
+  }
+}, [])
   // ─── Selected Change ─────────────────────────────
   useEffect(() => {
     if (!selected) return

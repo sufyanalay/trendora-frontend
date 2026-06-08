@@ -27,12 +27,36 @@ export default function BrandCollaborations() {
   const [toast, setToast]                   = useState('')
   const messagesEndRef                      = useRef(null)
 
-  useEffect(() => {
-    fetchCollaborations()
-    socket.on('new_notification', () => { fetchCollaborations() })
-    return () => { socket.off('new_notification') }
-  }, [])
+useEffect(() => {
+  fetchCollaborations()
 
+  socket.on('new_notification', () => {
+    fetchCollaborations()
+  })
+
+  socket.on('collaboration_updated', (data) => {
+    console.log('collaboration_updated received:', data)
+
+    setCollaborations(prev => prev.map(c =>
+      c._id.toString() === data.collaborationId.toString()
+        ? { ...c, chatUnlocked: data.chatUnlocked, status: data.status }
+        : c
+    ))
+
+    setSelected(prev => {
+      if (!prev) return prev
+      if (prev._id.toString() === data.collaborationId.toString()) {
+        return { ...prev, chatUnlocked: data.chatUnlocked, status: data.status }
+      }
+      return prev
+    })
+  })
+
+  return () => {
+    socket.off('new_notification')
+    socket.off('collaboration_updated')
+  }
+}, [])
   useEffect(() => {
     if (!selected) return
     if (selected.chatUnlocked) fetchMessages(selected._id)
