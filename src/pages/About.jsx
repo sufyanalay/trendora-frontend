@@ -15,7 +15,7 @@ const values = [
   { icon: '💰', title: 'Fairness', desc: 'Transparent payments with no hidden fees.' },
   { icon: '🚀', title: 'Growth', desc: 'We grow when our creators and brands grow.' },
 ]
-
+//
 export default function About() {
   return (
     <div className="min-h-screen bg-surface">
