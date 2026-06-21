@@ -19,23 +19,26 @@ const initAuth = async () => {
   try {
     const res = await axios.get('/auth/me')
     setUser(res.data)
-
-    // ✅ Connect hone ke baad join karo
     socket.connect()
     socket.on('connect', () => {
       socket.emit('join', res.data._id.toString())
-      console.log('Joined room:', res.data._id.toString())
     })
-
-    // Agar already connected hai
     if (socket.connected) {
       socket.emit('join', res.data._id.toString())
     }
-
   } catch (err) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
+    // ✅ Banned user — logout karo
+    if (err.response?.data?.isBanned) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+      // Banned message show karne ke liye
+      localStorage.setItem('bannedMessage', 'Your account has been banned.')
+    } else {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+    }
   } finally {
     setLoading(false)
   }

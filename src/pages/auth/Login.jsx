@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import authBg from '../../assets/auth-bg.jpeg'
+import { useState, useEffect } from 'react'
 
 export default function Login() {
   const [email, setEmail]     = useState('')
@@ -14,6 +15,14 @@ export default function Login() {
   const { login } = useAuth()
   const navigate  = useNavigate()
 
+
+  useEffect(() => {
+  const bannedMsg = localStorage.getItem('bannedMessage')
+  if (bannedMsg) {
+    setError(bannedMsg)
+    localStorage.removeItem('bannedMessage')
+  }
+}, [])
  const handleSubmit = async (e) => {
   e.preventDefault()
   setError('')
