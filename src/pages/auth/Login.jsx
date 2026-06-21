@@ -1,51 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import authBg from '../../assets/auth-bg.jpeg'
+
 export default function Login() {
-  const [email, setEmail]     = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [remember, setRemember] = useState(false)
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
 
   const { login } = useAuth()
   const navigate  = useNavigate()
 
-
+  // ✅ Banned message check
   useEffect(() => {
-  const bannedMsg = localStorage.getItem('bannedMessage')
-  if (bannedMsg) {
-    setError(bannedMsg)
-    localStorage.removeItem('bannedMessage')
-  }
-}, [])
- const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
-  try {
-    const user = await login(email, password)
-    if (user.role === 'admin')        navigate('/admin/dashboard')
-    else if (user.role === 'brand')   navigate('/brand/dashboard')
-    else                              navigate('/creator/dashboard')
-  } catch (err) {
-    const data = err.response?.data
-    // ✅ Email verify nahi hua
-    if (data?.needsVerification) {
-      navigate('/verify-email', { state: { userId: data.userId } })
-      return
+    const bannedMsg = localStorage.getItem('bannedMessage')
+    if (bannedMsg) {
+      setError(bannedMsg)
+      localStorage.removeItem('bannedMessage')
     }
-    setError(data?.message || 'Login failed.')
-  } finally {
-    setLoading(false)
+  }, [])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const user = await login(email, password)
+      if (user.role === 'admin')      navigate('/admin/dashboard')
+      else if (user.role === 'brand') navigate('/brand/dashboard')
+      else                            navigate('/creator/dashboard')
+    } catch (err) {
+      const data = err.response?.data
+      if (data?.needsVerification) {
+        navigate('/verify-email', { state: { userId: data.userId } })
+        return
+      }
+      setError(data?.message || 'Login failed.')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT SIDE */}
       <div
         className="hidden lg:flex w-1/2 relative flex-col justify-between p-10"
         style={{ backgroundImage: `url(${authBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
@@ -75,11 +75,9 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT SIDE */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-purple-50">
         <div className="w-full max-w-md">
 
-          {/* Mobile Logo */}
           <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
               <span className="text-white font-black text-base">T</span>
@@ -93,10 +91,11 @@ export default function Login() {
               <p className="text-sm text-muted">Login to continue to your Trendora account</p>
             </div>
 
-            {/* Error */}
+            {/* ✅ Error / Banned message */}
             {error && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
-                {error}
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{error}</span>
               </div>
             )}
 
