@@ -203,7 +203,7 @@ export default function Features() {
                 <motion.div
                   key={i}
                   initial={{
-                    opacity: 0,
+                    opacity: 1,
                     y: 60,
                   }}
                   whileInView={{
@@ -215,7 +215,7 @@ export default function Features() {
                   }}
                   transition={{
                     duration: 0.5,
-                    delay: i * 0.08,
+                    delay: i * 0.02,
                   }}
                   key={i}
                   className="
@@ -278,22 +278,82 @@ duration-300
           </div>
         </section>
       </SectionReveal>
+
       {/* CTA */}
       <SectionReveal>
-        <section className="py-16 bg-gradient-section">
-          <div className="max-w-2xl mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Start Using These Features Today
+        <section className="relative py-20 overflow-hidden bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900">
+          {/* Glow Effects */}
+          <div className="absolute top-0 left-0 w-72 h-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-72 h-72 rounded-full bg-violet-400/10 blur-3xl" />
+
+          <div className="relative max-w-4xl px-4 mx-auto text-center">
+            {/* Badge */}
+            <span
+              className="
+          inline-flex
+          items-center
+          px-4
+          py-2
+          mb-6
+          text-xs
+          font-bold
+          tracking-wider
+          uppercase
+          rounded-full
+          border
+          border-white/20
+          bg-white/10
+          text-purple-100
+        "
+            >
+              🚀 Join Trendora Today
+            </span>
+
+            {/* Heading */}
+            <h2 className="mb-5 text-4xl font-black text-white md:text-5xl">
+              Ready to
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-200 to-white">
+                {" "}
+                Grow Faster?
+              </span>
             </h2>
-            <p className="text-purple-200 mb-8">
-              Free to join. No hidden charges.
+
+            {/* Description */}
+            <p className="max-w-2xl mx-auto mb-8 text-lg leading-relaxed text-purple-100">
+              Unlock premium features, connect with top brands, discover paid
+              collaborations, and take your creator journey to the next level.
             </p>
+
+            {/* Button */}
             <Link
               to="/signup"
-              className="inline-block px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:bg-purple-50 transition-colors"
+              className="
+          inline-flex
+          items-center
+          gap-2
+          px-8
+          py-4
+          bg-white
+          text-purple-700
+          font-bold
+          rounded-2xl
+          shadow-lg
+          transition-all
+          duration-300
+          hover:scale-105
+          hover:-translate-y-1
+          hover:shadow-2xl
+        "
             >
-              Create Free Account
+              Create Free Account →
             </Link>
+
+            {/* Trust Line */}
+            <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-purple-200">
+              <span>✓ No Hidden Charges</span>
+              <span>✓ Secure Payments</span>
+              <span>✓ Cancel Anytime</span>
+            </div>
           </div>
         </section>
       </SectionReveal>

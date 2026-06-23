@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import authBg from "../../assets/auth-bg.jpeg";
 import axios from "../../utils/axios";
+import navbarLogo from "../../assets/navbar-logo.png";
+import { Icon } from "@iconify/react";
 export default function Signup() {
   const location = useLocation();
 
@@ -61,16 +63,16 @@ export default function Signup() {
     <div className="min-h-screen flex">
       {/* LEFT SIDE — Background Image */}
       <div
-        className="hidden lg:flex w-2/5 relative flex-col justify-between p-10"
+        className="hidden lg:flex w-1/2 relative "
         style={{
           backgroundImage: `url(${authBg})`,
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: "55% center",
         }}
       >
-        <div className="absolute inset-0 bg-primary/60" />
+        {/* <div className="absolute inset-0 bg-primary/60" /> */}
 
-        <div className="relative z-10">
+        {/* <div className="relative z-10">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
               <span className="text-primary font-black text-lg">T</span>
@@ -102,29 +104,67 @@ export default function Signup() {
               className={`h-1.5 rounded-full bg-white ${i === 0 ? "w-6" : "w-1.5"} opacity-60`}
             />
           ))}
-        </div>
+        </div> */}
       </div>
 
       {/* RIGHT SIDE — Signup Form */}
-      <div className="w-full lg:w-3/5 flex items-center justify-center px-6 py-12 bg-purple-50 overflow-y-auto">
-        <div className="w-full max-w-xl my-6">
+      <div className="w-full lg:w-[50%] flex items-center justify-center px-6 py-12 bg-[#F5F2FA] overflow-y-auto">
+        <div className="w-full max-w-2xl my-6">
           {/* Mobile Logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-white font-black text-base">T</span>
-            </div>
-            <span className="text-primary font-black text-xl">TRENDORA</span>
+          <div className="flex lg:hidden justify-center mb-8">
+            <Link
+              to="/"
+              className="flex items-center gap-1 transition-transform hover:scale-105"
+            >
+              <img
+                src={navbarLogo}
+                alt="Trendora Logo"
+                className="w-12 h-12 object-contain"
+              />
+              <span className="text-2xl font-extrabold tracking-tight text-purple-700">
+                Trendora
+              </span>
+            </Link>
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-3xl shadow-purple p-8 md:p-10">
+          <div
+            className="
+  bg-white
+  rounded-[32px]
+  p-8
+  md:p-10
+  border
+  border-purple-100
+  shadow-[0_25px_80px_rgba(124,58,237,0.12)]
+"
+          >
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-black text-secondary mb-1">
-                Create Your Account
-              </h1>
-              <p className="text-sm text-muted">
-                Sign up to get started with Trendora
-              </p>
+              <div className="text-center mb-8">
+                <span
+                  className="
+      inline-flex
+      items-center
+      gap-2
+      px-4
+      py-2
+      mb-2
+      text-xs
+      font-bold
+      tracking-wider
+      uppercase
+      rounded-full
+      bg-purple-100
+      text-purple-700
+    "
+                >
+                  Create Account
+                </span>
+
+                <p className="text-sm text-muted">
+                  Join Trendora Creator Marketplace
+                </p>
+              </div>
             </div>
 
             {/* Role Toggle */}
@@ -136,32 +176,39 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => setRole("creator")}
-                  className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                     role === "creator"
                       ? "bg-primary text-white border-primary shadow-purple"
                       : "bg-surface text-muted border-border hover:border-primary hover:text-primary"
                   }`}
                 >
-                  👤 Creator
+                  <Icon icon="solar:user-bold" className="text-lg" />
+                  <span>Creator</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setRole("brand")}
-                  className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                     role === "brand"
                       ? "bg-primary text-white border-primary shadow-purple"
                       : "bg-surface text-muted border-border hover:border-primary hover:text-primary"
                   }`}
                 >
-                  🏢 Brand
+                  <Icon icon="solar:buildings-bold" className="text-lg" />
+                  <span>Brand</span>
                 </button>
               </div>
             </div>
 
             {/* Error */}
             {error && (
-              <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
-                {error}
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl flex items-center gap-2">
+                <Icon
+                  icon="solar:danger-triangle-bold"
+                  className="text-lg flex-shrink-0"
+                />
+                <span>{error}</span>
               </div>
             )}
 
@@ -174,7 +221,10 @@ export default function Signup() {
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                      👤
+                      <Icon
+                        icon="solar:user-bold"
+                        className="absolute top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                     </span>
                     <input
                       type="text"
@@ -192,7 +242,10 @@ export default function Signup() {
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                      ✉️
+                      <Icon
+                        icon="mdi-light:email"
+                        className="absolute  top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                     </span>
                     <input
                       type="email"
@@ -213,9 +266,10 @@ export default function Signup() {
                     Password
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                      🔒
-                    </span>
+                    <Icon
+                      icon="formkit:password"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                    />
                     <input
                       type={showPass ? "text" : "password"}
                       required
@@ -229,7 +283,12 @@ export default function Signup() {
                       onClick={() => setShowPass(!showPass)}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-primary text-sm"
                     >
-                      {showPass ? "🙈" : "👁️"}
+                      <Icon
+                        icon={
+                          showPass ? "mdi:eye-off-outline" : "mdi:eye-outline"
+                        }
+                        className="text-xl"
+                      />
                     </button>
                   </div>
                 </div>
@@ -238,9 +297,10 @@ export default function Signup() {
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                      🔒
-                    </span>
+                    <Icon
+                      icon="formkit:password"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                    />
                     <input
                       type={showConfirm ? "text" : "password"}
                       required
@@ -256,7 +316,14 @@ export default function Signup() {
                       onClick={() => setShowConfirm(!showConfirm)}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-primary text-sm"
                     >
-                      {showConfirm ? "🙈" : "👁️"}
+                      <Icon
+                        icon={
+                          showConfirm
+                            ? "mdi:eye-off-outline"
+                            : "mdi:eye-outline"
+                        }
+                        className="text-xl"
+                      />
                     </button>
                   </div>
                 </div>
@@ -270,9 +337,10 @@ export default function Signup() {
                       Most Followed Social Media Account
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        👤
-                      </span>
+                      <Icon
+                        icon="solar:users-group-rounded-bold"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="e.g. @username"
@@ -289,9 +357,10 @@ export default function Signup() {
                       Social Profile URL
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        🔗
-                      </span>
+                      <Icon
+                        icon="solar:link-bold"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="e.g. instagram.com/username"
@@ -308,9 +377,10 @@ export default function Signup() {
                       Address
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        📍
-                      </span>
+                      <Icon
+                        icon="boxicons:location"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="Enter your address"
@@ -331,9 +401,10 @@ export default function Signup() {
                       Brand Name
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        🏢
-                      </span>
+                      <Icon
+                        icon="solar:buildings-bold"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="Enter your brand name"
@@ -348,9 +419,10 @@ export default function Signup() {
                       Website URL
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        🌐
-                      </span>
+                      <Icon
+                        icon="solar:global-bold"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="Enter your website URL"
@@ -365,9 +437,10 @@ export default function Signup() {
                       Brand Address
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-                        📍
-                      </span>
+                      <Icon
+                        icon="boxicons:location"
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-purple-500"
+                      />
                       <input
                         type="text"
                         placeholder="Enter your brand address"
@@ -414,7 +487,17 @@ export default function Signup() {
               >
                 {loading ? "Creating Account..." : "Create Account"}
               </button>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
 
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-xs text-gray-400">
+                    Trendora Creator Marketplace
+                  </span>
+                </div>
+              </div>
               {/* Login Link */}
               <p className="text-center text-sm text-muted">
                 Already have an account?{" "}

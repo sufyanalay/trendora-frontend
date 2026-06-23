@@ -195,7 +195,7 @@ export default function HowItWorks() {
                   <motion.div
                     key={i}
                     initial={{
-                      opacity: 0,
+                      opacity: 1,
                       y: 60,
                     }}
                     whileInView={{
@@ -207,7 +207,7 @@ export default function HowItWorks() {
                     }}
                     transition={{
                       duration: 0.6,
-                      delay: i * 0.15,
+                      delay: i * 0,
                     }}
                     className={`relative flex flex-col md:flex-row items-center gap-6 ${
                       step.side === "right" ? "md:flex-row-reverse" : ""
