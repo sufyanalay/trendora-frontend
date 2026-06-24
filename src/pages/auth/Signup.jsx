@@ -111,7 +111,7 @@ export default function Signup() {
 
       {/* RIGHT SIDE — Signup Form */}
       <div className="w-full lg:w-[50%] flex items-center justify-center px-6 py-2 bg-[#F5F2FA] overflow-hidden">
-        <div className="w-full max-w-2xl lg:scale-[0.74] xl:scale-[0.8] scale-100 origin-center">
+        <div className="w-full max-w-2xl lg:scale-[0.74] scale-100 origin-center">
           {/* Mobile Logo */}
           <div className="flex lg:hidden justify-center mb-8">
             <Link
