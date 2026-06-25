@@ -33,32 +33,68 @@ export default function Signup() {
 
   const update = (field, val) => setForm((prev) => ({ ...prev, [field]: val }));
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setError("");
+
+  //   if (form.password !== form.confirmPassword) {
+  //     return setError("Passwords do not match");
+  //   }
+  //   if (form.password.length < 6) {
+  //     return setError("Password must be at least 6 characters");
+  //   }
+  //   if (!agreed) {
+  //     return setError("Please agree to Terms & Conditions");
+  //   }
+
+  //   setLoading(true);
+  //   try {
+  //     const res = await axios.post("/auth/register", { role, ...form });
+
+  //     // ✅ Verification page par bhejo
+  //     navigate("/verify-email", { state: { userId: res.data.userId } });
+  //   } catch (err) {
+  //     setError(err.response?.data?.message || "Registration failed.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError('');
 
-    if (form.password !== form.confirmPassword) {
-      return setError("Passwords do not match");
-    }
-    if (form.password.length < 6) {
-      return setError("Password must be at least 6 characters");
-    }
-    if (!agreed) {
-      return setError("Please agree to Terms & Conditions");
-    }
+  // ✅ Full name min 3 chars
+  if (form.fullName.trim().length < 3) {
+    return setError('Full name must be at least 3 characters');
+  }
 
-    setLoading(true);
-    try {
-      const res = await axios.post("/auth/register", { role, ...form });
+  // ✅ Password validations
+  if (form.password.length < 6) {
+    return setError('Password must be at least 6 characters');
+  }
+  if (!/[A-Z]/.test(form.password)) {
+    return setError('Password must contain at least one uppercase letter');
+  }
+  if (!/[0-9]/.test(form.password)) {
+    return setError('Password must contain at least one number');
+  }
+  if (form.password !== form.confirmPassword) {
+    return setError('Passwords do not match');
+  }
+  if (!agreed) {
+    return setError('Please agree to Terms & Conditions');
+  }
 
-      // ✅ Verification page par bhejo
-      navigate("/verify-email", { state: { userId: res.data.userId } });
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await axios.post('/auth/register', { role, ...form });
+    navigate('/verify-email', { state: { userId: res.data.userId } });
+  } catch (err) {
+    setError(err.response?.data?.message || 'Registration failed.');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen lg:h-screen flex lg:overflow-hidden">
       {/* LEFT SIDE — Background Image */}
@@ -292,6 +328,10 @@ export default function Signup() {
                       />
                     </button>
                   </div>
+                  {/* Password hint */}
+<p className="text-xs text-muted mt-1">
+  Min 6 chars, 1 uppercase, 1 number (e.g. Pass123)
+</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-secondary mb-1.5">
@@ -453,6 +493,7 @@ export default function Signup() {
                   </div>
                 </>
               )}
+              
 
               {/* Terms */}
               <label className="flex items-start gap-2 cursor-pointer">
