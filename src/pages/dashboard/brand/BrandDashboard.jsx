@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { Link } from 'react-router-dom'
 import axios from '../../../utils/axios'
 import socket from '../../../utils/socket'
@@ -94,7 +94,7 @@ export default function BrandDashboard() {
   }
 
   return (
-    <DashboardLayout links={brandLinks}>
+     <>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -272,6 +272,6 @@ export default function BrandDashboard() {
         )}
       </div>
 
-    </DashboardLayout>
+     </>
   )
 }

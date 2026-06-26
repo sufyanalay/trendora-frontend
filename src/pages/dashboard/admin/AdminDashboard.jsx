@@ -294,7 +294,7 @@
 
 
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { Link } from 'react-router-dom'
 import axios from '../../../utils/axios'
 
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
   )
 
   return (
-    <DashboardLayout links={adminLinks}>
+     <>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -608,6 +608,6 @@ export default function AdminDashboard() {
         )}
       </div>
 
-    </DashboardLayout>
+     </>
   )
 }

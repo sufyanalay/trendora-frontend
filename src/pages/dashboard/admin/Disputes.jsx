@@ -1,9 +1,9 @@
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { adminLinks } from './AdminDashboard'
 
 export default function Disputes() {
   return (
-    <DashboardLayout links={adminLinks}>
+     <>
       <div className="mb-6">
         <h1 className="text-2xl font-black text-secondary">Disputes</h1>
         <p className="text-muted text-sm mt-1">Handle reported issues between creators and brands.</p>
@@ -38,6 +38,6 @@ export default function Disputes() {
           <p className="text-muted text-sm mt-1">Disputes will appear here when users report issues.</p>
         </div>
       </div>
-    </DashboardLayout>
+     </>
   )
 }

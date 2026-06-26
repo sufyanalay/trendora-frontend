@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { adminLinks } from './AdminDashboard'
 import axios from '../../../utils/axios'
 
@@ -122,7 +122,7 @@ const stats = [
 ]
 
   return (
-    <DashboardLayout links={adminLinks}>
+     <>
 
       {/* Toast */}
       {toast && (
@@ -533,6 +533,6 @@ const stats = [
           </div>
         )}
       </div>
-    </DashboardLayout>
+     </>
   )
 }

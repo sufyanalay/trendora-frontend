@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { adminLinks } from './AdminDashboard'
 import axios from '../../../utils/axios'
 
@@ -86,7 +86,7 @@ export default function ManageCollaborations() {
   })
 
   return (
-    <DashboardLayout links={adminLinks}>
+     <>
 
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-primary text-white text-sm font-semibold rounded-xl shadow-purple">
@@ -213,6 +213,6 @@ export default function ManageCollaborations() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+     </>
   )
 }

@@ -1,113 +1,156 @@
-import { useState, useEffect, useMemo } from 'react'
-import DashboardLayout from '../shared/DashboardLayout'
-import { adminLinks } from './AdminDashboard'
-import axios from '../../../utils/axios'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Icon } from '@iconify/react'
+import { useState, useEffect, useMemo } from "react";
+// import DashboardLayout from '../shared/DashboardLayout'
+import { adminLinks } from "./AdminDashboard";
+import axios from "../../../utils/axios";
+import { motion, AnimatePresence } from "framer-motion";
+import { Icon } from "@iconify/react";
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 10;
 
 export default function ManageOpportunities() {
-  const [opportunities, setOpportunities] = useState([])
-  const [loading, setLoading]             = useState(true)
-  const [search, setSearch]               = useState('')
-  const [statusFilter, setStatusFilter]   = useState('all')
-  const [platformFilter, setPlatformFilter] = useState('all')
-  const [sortBy, setSortBy]               = useState('newest')
-  const [page, setPage]                   = useState(1)
-  const [toast, setToast]                 = useState('')
-  const [confirmModal, setConfirmModal]   = useState(null)
+  const [opportunities, setOpportunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [page, setPage] = useState(1);
+  const [toast, setToast] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
   const fetchAll = async () => {
     try {
-      const res = await axios.get('/admin/opportunities')
-      setOpportunities(res.data)
+      const res = await axios.get("/admin/opportunities");
+      setOpportunities(res.data);
     } catch {
-      setOpportunities([])
+      setOpportunities([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
-  }
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  };
 
   // ✅ Admin sirf brand ki REQUEST pe close kare — confirmation modal
   const handleClose = async () => {
-    if (!confirmModal) return
+    if (!confirmModal) return;
     try {
-      await axios.put(`/admin/opportunities/${confirmModal._id}/close`)
-      setOpportunities(prev => prev.map(o =>
-        o._id === confirmModal._id ? { ...o, status: 'closed' } : o
-      ))
-      showToast('✅ Opportunity closed')
-      setConfirmModal(null)
+      await axios.put(`/admin/opportunities/${confirmModal._id}/close`);
+      setOpportunities((prev) =>
+        prev.map((o) =>
+          o._id === confirmModal._id ? { ...o, status: "closed" } : o,
+        ),
+      );
+      showToast("✅ Opportunity closed");
+      setConfirmModal(null);
     } catch {
-      showToast('Action failed.')
+      showToast("Action failed.");
     }
-  }
+  };
 
   // ✅ Dynamic platforms from data
   const platforms = useMemo(() => {
-    const all = [...new Set(opportunities.map(o => o.platform).filter(Boolean))]
-    return ['all', ...all]
-  }, [opportunities])
+    const all = [
+      ...new Set(opportunities.map((o) => o.platform).filter(Boolean)),
+    ];
+    return ["all", ...all];
+  }, [opportunities]);
 
   // ✅ Filter + Sort + Search
   const filtered = useMemo(() => {
-    let data = [...opportunities]
+    let data = [...opportunities];
 
     if (search) {
-      data = data.filter(o =>
-        o.title?.toLowerCase().includes(search.toLowerCase()) ||
-        o.brandName?.toLowerCase().includes(search.toLowerCase()) ||
-        o.category?.toLowerCase().includes(search.toLowerCase())
-      )
+      data = data.filter(
+        (o) =>
+          o.title?.toLowerCase().includes(search.toLowerCase()) ||
+          o.brandName?.toLowerCase().includes(search.toLowerCase()) ||
+          o.category?.toLowerCase().includes(search.toLowerCase()),
+      );
     }
 
-    if (statusFilter !== 'all') {
-      data = data.filter(o => o.status === statusFilter)
+    if (statusFilter !== "all") {
+      data = data.filter((o) => o.status === statusFilter);
     }
 
-    if (platformFilter !== 'all') {
-      data = data.filter(o => o.platform === platformFilter)
+    if (platformFilter !== "all") {
+      data = data.filter((o) => o.platform === platformFilter);
     }
 
     switch (sortBy) {
-      case 'newest':    data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); break
-      case 'oldest':    data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break
-      case 'budget_hi': data.sort((a, b) => b.budget - a.budget); break
-      case 'budget_lo': data.sort((a, b) => a.budget - b.budget); break
-      case 'title':     data.sort((a, b) => a.title?.localeCompare(b.title)); break
+      case "newest":
+        data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case "oldest":
+        data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case "budget_hi":
+        data.sort((a, b) => b.budget - a.budget);
+        break;
+      case "budget_lo":
+        data.sort((a, b) => a.budget - b.budget);
+        break;
+      case "title":
+        data.sort((a, b) => a.title?.localeCompare(b.title));
+        break;
     }
 
-    return data
-  }, [opportunities, search, statusFilter, platformFilter, sortBy])
+    return data;
+  }, [opportunities, search, statusFilter, platformFilter, sortBy]);
 
   // Pagination
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
-  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
 
   const statusColors = {
-    active:    'bg-green-50 text-green-700 border-green-200',
-    closed:    'bg-gray-100 text-gray-500 border-gray-200',
-    completed: 'bg-blue-50 text-blue-700 border-blue-200',
-  }
+    active: "bg-green-50 text-green-700 border-green-200",
+    closed: "bg-gray-100 text-gray-500 border-gray-200",
+    completed: "bg-blue-50 text-blue-700 border-blue-200",
+  };
 
   const stats = [
-    { label: 'Total',     value: opportunities.length,                                        icon: 'solar:list-bold',        color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Active',    value: opportunities.filter(o => o.status === 'active').length,     icon: 'solar:check-circle-bold', color: 'text-green-600',  bg: 'bg-green-50' },
-    { label: 'Closed',    value: opportunities.filter(o => o.status === 'closed').length,     icon: 'solar:close-circle-bold', color: 'text-gray-500',   bg: 'bg-gray-100' },
-    { label: 'Completed', value: opportunities.filter(o => o.status === 'completed').length,  icon: 'solar:medal-bold',        color: 'text-blue-600',   bg: 'bg-blue-50' },
-  ]
+    {
+      label: "Total",
+      value: opportunities.length,
+      icon: "solar:list-bold",
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+    },
+    {
+      label: "Active",
+      value: opportunities.filter((o) => o.status === "active").length,
+      icon: "solar:check-circle-bold",
+      color: "text-green-600",
+      bg: "bg-green-50",
+    },
+    {
+      label: "Closed",
+      value: opportunities.filter((o) => o.status === "closed").length,
+      icon: "solar:close-circle-bold",
+      color: "text-gray-500",
+      bg: "bg-gray-100",
+    },
+    {
+      label: "Completed",
+      value: opportunities.filter((o) => o.status === "completed").length,
+      icon: "solar:medal-bold",
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+    },
+  ];
 
   return (
-    <DashboardLayout links={adminLinks}>
-
+    <>
       {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white text-sm font-semibold rounded-2xl shadow-lg flex items-center gap-2">
@@ -126,26 +169,41 @@ export default function ManageOpportunities() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl shadow-purple-200 overflow-hidden"
             >
-              <div className="bg-gradient-to-r from-red-500 to-orange-500 p-5">
+              <div className="bg-primary p-5">
                 <h3 className="font-black text-white text-lg flex items-center gap-2">
-                  <Icon icon="solar:danger-triangle-bold" className="text-2xl" />
+                  <Icon
+                    icon="solar:danger-triangle-bold"
+                    className="text-2xl"
+                  />
                   Close Opportunity?
                 </h3>
-                <p className="text-red-100 text-sm mt-1">This action cannot be undone</p>
+                <p className="text-red-100 text-sm mt-1">
+                  This action cannot be undone
+                </p>
               </div>
               <div className="p-6 space-y-4">
                 <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
-                  <p className="text-sm font-bold text-gray-800 mb-1">{confirmModal.title}</p>
-                  <p className="text-xs text-gray-500">Brand: {confirmModal.brandName}</p>
-                  <p className="text-xs text-gray-500 mt-1">Budget: PKR {confirmModal.budget?.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-gray-800 mb-1">
+                    {confirmModal.title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Brand: {confirmModal.brandName}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Budget: PKR {confirmModal.budget?.toLocaleString()}
+                  </p>
                 </div>
 
                 {/* ✅ Warning about brand's right */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex gap-3">
-                  <Icon icon="solar:info-circle-bold" className="text-yellow-500 text-xl flex-shrink-0 mt-0.5" />
+                  <Icon
+                    icon="solar:info-circle-bold"
+                    className="text-yellow-500 text-xl flex-shrink-0 mt-0.5"
+                  />
                   <p className="text-xs text-yellow-800">
-                    <strong>Note:</strong> Only close this opportunity if the brand has specifically requested it,
-                    or if it violates platform policies. Closing prematurely may harm the brand.
+                    <strong>Note:</strong> Only close this opportunity if the
+                    brand has specifically requested it, or if it violates
+                    platform policies. Closing prematurely may harm the brand.
                   </p>
                 </div>
 
@@ -158,7 +216,7 @@ export default function ManageOpportunities() {
                   </button>
                   <button
                     onClick={handleClose}
-                    className="flex-1 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-2xl text-sm font-bold hover:shadow-lg hover:shadow-red-200 transition-all"
+                    className="flex-1 py-3 bg-primary text-white rounded-2xl text-sm font-bold hover:shadow-lg hover:shadow-red-200 transition-all"
                   >
                     Yes, Close It
                   </button>
@@ -172,7 +230,9 @@ export default function ManageOpportunities() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-black text-gray-900">All Opportunities</h1>
-        <p className="text-gray-500 text-sm mt-1">Monitor and manage all posted campaigns.</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Monitor and manage all posted campaigns.
+        </p>
       </div>
 
       {/* Stats */}
@@ -185,7 +245,9 @@ export default function ManageOpportunities() {
             transition={{ delay: i * 0.05 }}
             className="bg-white rounded-2xl p-4 border border-purple-50 shadow-sm flex items-center gap-3"
           >
-            <div className={`w-10 h-10 rounded-2xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+            <div
+              className={`w-10 h-10 rounded-2xl ${s.bg} flex items-center justify-center flex-shrink-0`}
+            >
               <Icon icon={s.icon} className={`${s.color} text-xl`} />
             </div>
             <div>
@@ -200,12 +262,18 @@ export default function ManageOpportunities() {
       <div className="bg-white rounded-2xl border border-purple-50 shadow-sm p-4 mb-6 space-y-3">
         {/* Search */}
         <div className="relative">
-          <Icon icon="solar:magnifer-bold" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+          <Icon
+            icon="solar:magnifer-bold"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"
+          />
           <input
             type="text"
             placeholder="Search by title, brand, or category..."
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1) }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 bg-gray-50"
           />
         </div>
@@ -213,10 +281,16 @@ export default function ManageOpportunities() {
         <div className="flex flex-wrap gap-3 items-center">
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <Icon icon="solar:filter-bold" className="text-purple-500 text-sm" />
+            <Icon
+              icon="solar:filter-bold"
+              className="text-purple-500 text-sm"
+            />
             <select
               value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 bg-gray-50 text-gray-600"
             >
               <option value="all">All Status</option>
@@ -228,14 +302,22 @@ export default function ManageOpportunities() {
 
           {/* Platform Filter */}
           <div className="flex items-center gap-2">
-            <Icon icon="solar:smartphone-bold" className="text-purple-500 text-sm" />
+            <Icon
+              icon="solar:smartphone-bold"
+              className="text-purple-500 text-sm"
+            />
             <select
               value={platformFilter}
-              onChange={e => { setPlatformFilter(e.target.value); setPage(1) }}
+              onChange={(e) => {
+                setPlatformFilter(e.target.value);
+                setPage(1);
+              }}
               className="text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 bg-gray-50 text-gray-600"
             >
-              {platforms.map(p => (
-                <option key={p} value={p}>{p === 'all' ? 'All Platforms' : p}</option>
+              {platforms.map((p) => (
+                <option key={p} value={p}>
+                  {p === "all" ? "All Platforms" : p}
+                </option>
               ))}
             </select>
           </div>
@@ -245,7 +327,10 @@ export default function ManageOpportunities() {
             <Icon icon="solar:sort-bold" className="text-purple-500 text-sm" />
             <select
               value={sortBy}
-              onChange={e => { setSortBy(e.target.value); setPage(1) }}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setPage(1);
+              }}
               className="text-xs font-semibold border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 bg-gray-50 text-gray-600"
             >
               <option value="newest">Newest First</option>
@@ -262,9 +347,18 @@ export default function ManageOpportunities() {
           </span>
 
           {/* Reset filters */}
-          {(search || statusFilter !== 'all' || platformFilter !== 'all' || sortBy !== 'newest') && (
+          {(search ||
+            statusFilter !== "all" ||
+            platformFilter !== "all" ||
+            sortBy !== "newest") && (
             <button
-              onClick={() => { setSearch(''); setStatusFilter('all'); setPlatformFilter('all'); setSortBy('newest'); setPage(1) }}
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("all");
+                setPlatformFilter("all");
+                setSortBy("newest");
+                setPage(1);
+              }}
               className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1"
             >
               <Icon icon="solar:close-circle-bold" />
@@ -279,13 +373,19 @@ export default function ManageOpportunities() {
         {loading ? (
           <div className="p-6 space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-gray-50 rounded-2xl animate-pulse" />
+              <div
+                key={i}
+                className="h-14 bg-gray-50 rounded-2xl animate-pulse"
+              />
             ))}
           </div>
         ) : paginated.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 bg-purple-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
-              <Icon icon="solar:magnifer-bold" className="text-3xl text-purple-300" />
+              <Icon
+                icon="solar:magnifer-bold"
+                className="text-3xl text-purple-300"
+              />
             </div>
             <p className="font-bold text-gray-700">No opportunities found</p>
             <p className="text-gray-400 text-sm mt-1">Try different filters</p>
@@ -313,15 +413,23 @@ export default function ManageOpportunities() {
                   className="grid grid-cols-1 md:grid-cols-12 gap-4 px-6 py-4 hover:bg-purple-50/30 transition-colors items-center"
                 >
                   <div className="md:col-span-4">
-                    <p className="text-sm font-bold text-gray-800 line-clamp-1">{op.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{op.category}</p>
+                    <p className="text-sm font-bold text-gray-800 line-clamp-1">
+                      {op.title}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {op.category}
+                    </p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-600 font-medium">{op.brandName}</p>
+                    <p className="text-sm text-gray-600 font-medium">
+                      {op.brandName}
+                    </p>
                   </div>
                   <div className="md:col-span-1 text-right">
                     <span className="text-sm font-black text-purple-700">
-                      {op.budget >= 1000 ? `${(op.budget / 1000).toFixed(0)}K` : op.budget}
+                      {op.budget >= 1000
+                        ? `${(op.budget / 1000).toFixed(0)}K`
+                        : op.budget}
                     </span>
                   </div>
                   <div className="md:col-span-2">
@@ -330,27 +438,34 @@ export default function ManageOpportunities() {
                     </span>
                   </div>
                   <div className="md:col-span-1">
-                    <span className={`text-xs font-semibold ${op.deadline <= 3 ? 'text-red-600' : 'text-gray-500'}`}>
+                    <span
+                      className={`text-xs font-semibold ${op.deadline <= 3 ? "text-red-600" : "text-gray-500"}`}
+                    >
                       {op.deadline}d
                     </span>
                   </div>
                   <div className="md:col-span-1">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusColors[op.status] || 'bg-gray-100 text-gray-500'}`}>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusColors[op.status] || "bg-gray-100 text-gray-500"}`}
+                    >
                       {op.status}
                     </span>
                   </div>
                   <div className="md:col-span-1 flex justify-center">
                     {/* ✅ Only show Close for active — with confirmation */}
-                    {op.status === 'active' && (
+                    {op.status === "active" && (
                       <button
                         onClick={() => setConfirmModal(op)}
                         className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-1"
                       >
-                        <Icon icon="solar:close-circle-bold" className="text-sm" />
+                        <Icon
+                          icon="solar:close-circle-bold"
+                          className="text-sm"
+                        />
                         Close
                       </button>
                     )}
-                    {op.status === 'closed' && (
+                    {op.status === "closed" && (
                       <span className="text-xs text-gray-400 flex items-center gap-1">
                         <Icon icon="solar:lock-bold" className="text-sm" />
                         Closed
@@ -369,35 +484,42 @@ export default function ManageOpportunities() {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:border-purple-400 hover:text-purple-600 disabled:opacity-40 transition-colors"
                   >
                     <Icon icon="solar:arrow-left-bold" className="text-sm" />
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .filter(
+                      (p) =>
+                        p === 1 || p === totalPages || Math.abs(p - page) <= 1,
+                    )
                     .map((p, idx, arr) => (
                       <>
                         {idx > 0 && arr[idx - 1] !== p - 1 && (
-                          <span key={`dots-${p}`} className="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">...</span>
+                          <span
+                            key={`dots-${p}`}
+                            className="w-8 h-8 flex items-center justify-center text-gray-300 text-xs"
+                          >
+                            ...
+                          </span>
                         )}
                         <button
                           key={p}
                           onClick={() => setPage(p)}
                           className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
                             page === p
-                              ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-md shadow-purple-200'
-                              : 'border border-gray-200 text-gray-500 hover:border-purple-400 hover:text-purple-600'
+                              ? "bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-md shadow-purple-200"
+                              : "border border-gray-200 text-gray-500 hover:border-purple-400 hover:text-purple-600"
                           }`}
                         >
                           {p}
                         </button>
                       </>
-                    ))
-                  }
+                    ))}
                   <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:border-purple-400 hover:text-purple-600 disabled:opacity-40 transition-colors"
                   >
@@ -409,6 +531,6 @@ export default function ManageOpportunities() {
           </>
         )}
       </div>
-    </DashboardLayout>
-  )
+    </>
+  );
 }

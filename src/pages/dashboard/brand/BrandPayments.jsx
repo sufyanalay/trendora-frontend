@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import DashboardLayout from '../shared/DashboardLayout'
+// import DashboardLayout from '../shared/DashboardLayout'
 import { brandLinks } from './BrandDashboard'
 import axios from '../../../utils/axios'
 
@@ -111,7 +111,7 @@ export default function BrandPayments() {
   const totalCommission = payments.filter(p => p.status === 'released').reduce((a, p) => a + (p.platformCommission || 0), 0)
 
   return (
-    <DashboardLayout links={brandLinks}>
+      <>
 
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3 bg-primary text-white text-sm font-semibold rounded-xl shadow-purple">
@@ -395,6 +395,6 @@ export default function BrandPayments() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+     </>
   )
 }

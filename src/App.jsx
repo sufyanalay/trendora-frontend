@@ -18,7 +18,11 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
-
+import {
+  creatorLinks,
+  brandLinks,
+  adminLinks,
+} from "./pages/dashboard/dashboardLinks";
 // Creator Dashboard
 import CreatorDashboard from "./pages/dashboard/creator/CreatorDashboard";
 import BrowseOpportunities from "./pages/dashboard/creator/BrowseOpportunities";
@@ -26,6 +30,7 @@ import MyApplications from "./pages/dashboard/creator/MyApplications";
 import ActiveCollaborations from "./pages/dashboard/creator/ActiveCollaborations";
 import Earnings from "./pages/dashboard/creator/Earnings";
 import CreatorProfile from "./pages/dashboard/creator/CreatorProfile";
+import DashboardLayout from "./pages/dashboard/shared/DashboardLayout";
 
 // Brand Dashboard
 import BrandDashboard from "./pages/dashboard/brand/BrandDashboard";
@@ -94,162 +99,55 @@ function App() {
 
           {/* Creator */}
           <Route
-            path="/creator/dashboard"
+            path="/creator"
             element={
               <ProtectedRoute allowedRoles={["creator"]}>
-                <CreatorDashboard />
+                <DashboardLayout links={creatorLinks} />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/creator/opportunities"
-            element={
-              <ProtectedRoute allowedRoles={["creator"]}>
-                <BrowseOpportunities />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/creator/applications"
-            element={
-              <ProtectedRoute allowedRoles={["creator"]}>
-                <MyApplications />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/creator/collaborations"
-            element={
-              <ProtectedRoute allowedRoles={["creator"]}>
-                <ActiveCollaborations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/creator/earnings"
-            element={
-              <ProtectedRoute allowedRoles={["creator"]}>
-                <Earnings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/creator/profile"
-            element={
-              <ProtectedRoute allowedRoles={["creator"]}>
-                <CreatorProfile />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="dashboard" element={<CreatorDashboard />} />
+            <Route path="opportunities" element={<BrowseOpportunities />} />
+            <Route path="applications" element={<MyApplications />} />
+            <Route path="collaborations" element={<ActiveCollaborations />} />
+            <Route path="earnings" element={<Earnings />} />
+            <Route path="profile" element={<CreatorProfile />} />
+          </Route>
 
           {/* Brand */}
           <Route
-            path="/brand/dashboard"
+            path="/brand"
             element={
               <ProtectedRoute allowedRoles={["brand"]}>
-                <BrandDashboard />
+                <DashboardLayout links={brandLinks} />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/brand/post-opportunity"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <PostOpportunity />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/brand/opportunities"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <MyOpportunities />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/brand/applications"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <ApplicationsReceived />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/brand/collaborations"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <BrandCollaborations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/brand/payments"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <BrandPayments />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/brand/profile"
-            element={
-              <ProtectedRoute allowedRoles={["brand"]}>
-                <BrandProfile />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="dashboard" element={<BrandDashboard />} />
+            <Route path="post-opportunity" element={<PostOpportunity />} />
+            <Route path="opportunities" element={<MyOpportunities />} />
+            <Route path="applications" element={<ApplicationsReceived />} />
+            <Route path="collaborations" element={<BrandCollaborations />} />
+            <Route path="payments" element={<BrandPayments />} />
+            <Route path="profile" element={<BrandProfile />} />
+          </Route>
 
           {/* Admin */}
           <Route
-            path="/admin/dashboard"
+            path="/admin"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
+                <DashboardLayout links={adminLinks} />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ManageUsers />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/opportunities"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ManageOpportunities />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/collaborations"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ManageCollaborations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/payments"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ManagePayments />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/disputes"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <Disputes />
-              </ProtectedRoute>
-            }
-          />
-
+          >
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<ManageUsers />} />
+            <Route path="opportunities" element={<ManageOpportunities />} />
+            <Route path="collaborations" element={<ManageCollaborations />} />
+            <Route path="payments" element={<ManagePayments />} />
+            <Route path="disputes" element={<Disputes />} />
+          </Route>
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
