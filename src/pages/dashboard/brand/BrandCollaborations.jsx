@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 // import DashboardLayout from "../shared/DashboardLayout";
+import { Icon } from "@iconify/react";
 import { brandLinks } from "./BrandDashboard";
 import axios from "../../../utils/axios";
 import socket from "../../../utils/socket";
@@ -36,12 +37,13 @@ export default function BrandCollaborations() {
   const [newMsg, setNewMsg] = useState("");
   const [revisionModal, setRevisionModal] = useState(null);
   const [revisionNote, setRevisionNote] = useState("");
-  const [reviewModal, setReviewModal] = useState(null); // ← New
-  const [rating, setRating] = useState(5); // ← New
-  const [reviewText, setReviewText] = useState(""); // ← New
-  const [submittingReview, setSubmittingReview] = useState(false); // ← New
+  const [reviewModal, setReviewModal] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [disputeModal, setDisputeModal] = useState(null);
   const [disputeReason, setDisputeReason] = useState("");
+  const [workModal, setWorkModal] = useState(null); // ← New
   const [toast, setToast] = useState("");
   const messagesEndRef = useRef(null);
 
@@ -49,7 +51,6 @@ export default function BrandCollaborations() {
     fetchCollaborations();
     socket.on("new_notification", fetchCollaborations);
     socket.on("collaboration_updated", (data) => {
-      // Full refetch to ensure we have the latest data
       fetchCollaborations();
     });
     return () => {
@@ -80,7 +81,7 @@ export default function BrandCollaborations() {
     return () => {
       socket.off("new_message");
     };
-  }, [selected?._id]); // ← ye change karo
+  }, [selected?._id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,19 +103,6 @@ export default function BrandCollaborations() {
     }
   };
 
-  // const fetchMessages = async (id) => {
-  //   try {
-  //     // ✅ Join collaboration room first
-  //     await axios.post(`/messages/${id}/join`)
-
-  //     // ✅ Fetch messages with pagination (page 1, 50 messages)
-  //     const res = await axios.get(`/messages/${id}?page=1&limit=50`)
-  //     setMessages(res.data.messages || res.data)
-  //   } catch (err) {
-  //     console.error('fetchMessages error:', err.message)
-  //     setMessages([])
-  //   }
-  // }
   const fetchMessages = async (id) => {
     try {
       const res = await axios.get(`/messages/${id}`);
@@ -414,6 +402,226 @@ export default function BrandCollaborations() {
         </div>
       )}
 
+      {/* ✅ View Submitted Work Modal */}
+      {workModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+          onClick={() => setWorkModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl shadow-purple-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-violet-700 p-6 rounded-t-3xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Icon
+                    icon="solar:folder-open-bold"
+                    className="text-white text-2xl"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-lg">
+                    Submitted Work
+                  </h3>
+                  <p className="text-purple-200 text-sm">
+                    by {workModal.creatorId?.fullName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setWorkModal(null)}
+                className="w-9 h-9 rounded-xl bg-white/20 text-white hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <Icon icon="solar:close-bold" className="text-lg" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Work Link / Description */}
+              {workModal.submittedWork && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Work Link / Description
+                  </p>
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-all leading-relaxed">
+                      {workModal.submittedWork}
+                    </p>
+                    {/* Check if it's a URL */}
+                    {workModal.submittedWork.startsWith("http") && (
+                      <a
+                        href={workModal.submittedWork}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-purple-50 text-purple-600 text-xs font-bold rounded-xl hover:bg-purple-100 transition-colors"
+                      >
+                        <Icon icon="solar:link-bold" />
+                        Open Link
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Uploaded Files */}
+              {workModal.submittedFiles?.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    Uploaded Files ({workModal.submittedFiles.length})
+                  </p>
+                  <div className="space-y-4">
+                    {workModal.submittedFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden"
+                      >
+                        {/* Image Preview */}
+                        {file.type?.startsWith("image") && (
+                          <div>
+                            <img
+                              src={file.url}
+                              alt={file.originalName}
+                              className="w-full max-h-72 object-contain bg-gray-100"
+                            />
+                            <div className="p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Icon
+                                  icon="solar:gallery-bold"
+                                  className="text-blue-500 text-lg"
+                                />
+                                <span className="text-xs font-semibold text-gray-700 truncate max-w-[200px]">
+                                  {file.originalName}
+                                </span>
+                              </div>
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-purple-600 font-bold hover:underline flex items-center gap-1"
+                              >
+                                <Icon icon="solar:download-bold" />
+                                Download
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Video Player */}
+                        {file.type?.startsWith("video") && (
+                          <div>
+                            <video
+                              src={file.url}
+                              controls
+                              className="w-full max-h-72 bg-black rounded-t-2xl"
+                            />
+                            <div className="p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Icon
+                                  icon="solar:video-frame-play-bold"
+                                  className="text-purple-500 text-lg"
+                                />
+                                <span className="text-xs font-semibold text-gray-700 truncate max-w-[200px]">
+                                  {file.originalName}
+                                </span>
+                              </div>
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-purple-600 font-bold hover:underline flex items-center gap-1"
+                              >
+                                <Icon icon="solar:download-bold" />
+                                Download
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Document */}
+                        {!file.type?.startsWith("image") &&
+                          !file.type?.startsWith("video") && (
+                            <div className="p-4 flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                                <Icon
+                                  icon="solar:file-text-bold"
+                                  className="text-orange-500 text-2xl"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-gray-800 truncate">
+                                  {file.originalName}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  Document
+                                </p>
+                              </div>
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                download
+                                className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 text-xs font-bold rounded-xl hover:bg-orange-100 transition-colors flex-shrink-0"
+                              >
+                                <Icon icon="solar:download-bold" />
+                                Download
+                              </a>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Submitted time */}
+              {workModal.submittedAt && (
+                <p className="text-xs text-gray-400 flex items-center gap-1">
+                  <Icon icon="solar:clock-circle-bold" />
+                  Submitted:{" "}
+                  {new Date(workModal.submittedAt).toLocaleString("en-PK", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setWorkModal(null)}
+                  className="flex-1 py-3 border-2 border-gray-200 text-gray-500 rounded-2xl text-sm font-semibold hover:border-purple-400 hover:text-purple-600 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    handleApprove(workModal._id);
+                    setWorkModal(null);
+                  }}
+                  className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl text-sm font-bold hover:shadow-lg hover:shadow-green-200 hover:-translate-y-0.5 transition-all"
+                >
+                  ✅ Approve Work
+                </button>
+                <button
+                  onClick={() => {
+                    setRevisionModal(workModal);
+                    setWorkModal(null);
+                  }}
+                  className="flex-1 py-3 border-2 border-orange-300 text-orange-600 rounded-2xl text-sm font-bold hover:bg-orange-50 transition-colors"
+                >
+                  🔄 Revision
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-black text-secondary">
           Active Collaborations
@@ -553,8 +761,20 @@ export default function BrandCollaborations() {
                       💬 Chat
                     </button>
                   )}
+
                   {c.status === "submitted" && (
                     <>
+                      {/* View Work button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWorkModal(c);
+                        }}
+                        className="flex-1 py-2 bg-purple-500 text-white text-xs font-bold rounded-xl hover:bg-purple-600 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Icon icon="solar:eye-bold" className="text-sm" />
+                        View Work
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -575,6 +795,7 @@ export default function BrandCollaborations() {
                       </button>
                     </>
                   )}
+
                   {/* ✅ Review button agar completed aur review nahi diya */}
                   {c.status === "completed" && (
                     <button

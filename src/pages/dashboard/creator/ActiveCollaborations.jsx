@@ -30,6 +30,8 @@ export default function ActiveCollaborations() {
   const [disputeReason, setDisputeReason] = useState("");
   const [toast, setToast] = useState("");
   const messagesEndRef = useRef(null);
+  const [uploadedFiles, setUploadedFiles] = useState([])
+const [uploading, setUploading]         = useState(false)
 
   useEffect(() => {
     fetchCollaborations();
@@ -147,27 +149,80 @@ export default function ActiveCollaborations() {
     }
   };
   const [deleteModal, setDeleteModal] = useState(null);
+  // const handleSubmitWork = async () => {
+  //   if (!workLink.trim()) return;
+  //   try {
+  //     await axios.put(`/collaborations/${submitModal._id}/submit`, {
+  //       submittedWork: workLink,
+  //     });
+  //     setCollaborations((prev) =>
+  //       prev.map((c) =>
+  //         c._id === submitModal._id ? { ...c, status: "submitted" } : c,
+  //       ),
+  //     );
+  //     if (selected?._id === submitModal._id) {
+  //       setSelected((prev) => ({ ...prev, status: "submitted" }));
+  //     }
+  //     showToast("✅ Work submitted successfully!");
+  //     setSubmitModal(null);
+  //     setWorkLink("");
+  //   } catch {
+  //     showToast("Failed to submit work");
+  //   }
+  // };
+
   const handleSubmitWork = async () => {
-    if (!workLink.trim()) return;
-    try {
-      await axios.put(`/collaborations/${submitModal._id}/submit`, {
-        submittedWork: workLink,
-      });
-      setCollaborations((prev) =>
-        prev.map((c) =>
-          c._id === submitModal._id ? { ...c, status: "submitted" } : c,
-        ),
-      );
-      if (selected?._id === submitModal._id) {
-        setSelected((prev) => ({ ...prev, status: "submitted" }));
-      }
-      showToast("✅ Work submitted successfully!");
-      setSubmitModal(null);
-      setWorkLink("");
-    } catch {
-      showToast("Failed to submit work");
+  if (!workLink.trim() && uploadedFiles.length === 0) {
+    return showToast('Please add a work link or upload files')
+  }
+  try {
+    await axios.put(`/collaborations/${submitModal._id}/submit`, {
+      submittedWork:  workLink,
+      submittedFiles: uploadedFiles,
+    })
+    setCollaborations(prev => prev.map(c =>
+      c._id === submitModal._id ? { ...c, status: 'submitted' } : c
+    ))
+    if (selected?._id === submitModal._id) {
+      setSelected(prev => ({ ...prev, status: 'submitted' }))
     }
-  };
+    showToast('✅ Work submitted successfully!')
+    setSubmitModal(null)
+    setWorkLink('')
+    setUploadedFiles([])
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Failed to submit work')
+  }
+};
+
+const handleFileUpload = async (e) => {
+  const files = Array.from(e.target.files)
+  if (!files.length) return
+
+  setUploading(true)
+  try {
+    const uploaded = []
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await axios.post('/upload/work-file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      uploaded.push({
+        url:          res.data.url,
+        originalName: res.data.originalName || file.name,
+        type:         res.data.type || file.type,
+        size:         res.data.size || file.size,
+      })
+    }
+    setUploadedFiles(prev => [...prev, ...uploaded])
+    showToast(`✅ ${uploaded.length} file(s) uploaded!`)
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Upload failed')
+  } finally {
+    setUploading(false)
+  }
+};
 
   const handleDeleteCollaboration = async (id) => {
     try {
@@ -339,46 +394,152 @@ export default function ActiveCollaborations() {
           </div>
         </div>
       )}
-      {/* Submit Work Modal */}
-      {submitModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-purple">
-            <h3 className="font-bold text-secondary text-lg mb-1">
-              Submit Work
-            </h3>
-            <p className="text-sm text-muted mb-5">
-              for: {submitModal.opportunityId?.title}
+     {submitModal && (
+  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
+    <div className="w-full max-w-lg overflow-hidden rounded-[32px] border border-purple-100 bg-white shadow-[0_25px_80px_rgba(124,58,237,0.18)]">
+
+      {/* Header */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 px-7 py-6">
+        <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+            <Icon icon="solar:upload-bold" className="text-3xl text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-white">Submit Work</h2>
+            <p className="mt-1 text-sm text-purple-100 truncate max-w-xs">
+              {submitModal.opportunityId?.title}
             </p>
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-secondary mb-1.5">
-                Work Link / Description
-              </label>
-              <textarea
-                rows={4}
-                placeholder="Paste your work link (Google Drive, YouTube, etc.) or describe the work done..."
-                value={workLink}
-                onChange={(e) => setWorkLink(e.target.value)}
-                className="w-full px-4 py-3 text-sm border border-border rounded-xl focus:outline-none focus:border-primary resize-none"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSubmitModal(null)}
-                className="flex-1 py-2.5 border-2 border-border text-muted rounded-xl text-sm font-semibold hover:border-primary hover:text-primary transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitWork}
-                className="flex flex-1 items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors"
-              >
-                <Icon icon="solar:upload-bold" className="text-lg" />
-                <span>Submit Work</span>
-              </button>
-            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Body */}
+      <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+
+        {/* Work Link */}
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">
+            Work Link / Description
+          </label>
+          <textarea
+            rows={3}
+            placeholder="Paste Google Drive, YouTube, or other link... or describe your work"
+            value={workLink}
+            onChange={e => setWorkLink(e.target.value)}
+            className="w-full px-4 py-3 text-sm border border-purple-100 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 resize-none bg-gray-50"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-xs text-gray-400 font-semibold">OR UPLOAD FILES</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        {/* File Upload Area */}
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1.5">
+            Upload Files
+            <span className="text-xs font-normal text-gray-400 ml-2">
+              Images, Videos, PDF, Docs (max 100MB)
+            </span>
+          </label>
+          <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+            uploading
+              ? 'border-purple-400 bg-purple-50'
+              : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50'
+          }`}>
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/*,.pdf,.doc,.docx"
+              onChange={handleFileUpload}
+              className="hidden"
+              disabled={uploading}
+            />
+            {uploading ? (
+              <div className="text-center">
+                <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-sm font-bold text-purple-600">Uploading to Cloudinary...</p>
+                <p className="text-xs text-purple-400 mt-1">Please wait</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <Icon icon="solar:cloud-upload-bold" className="text-4xl text-purple-300 mx-auto mb-2" />
+                <p className="text-sm font-bold text-gray-600">Click to upload files</p>
+                <p className="text-xs text-gray-400 mt-1">Images • Videos • PDFs • Docs</p>
+              </div>
+            )}
+          </label>
+        </div>
+
+        {/* Uploaded Files List */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-gray-600">
+              Uploaded ({uploadedFiles.length})
+            </p>
+            {uploadedFiles.map((file, idx) => (
+              <div key={idx} className="flex items-center gap-3 bg-purple-50 border border-purple-100 rounded-2xl px-4 py-3">
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Icon
+                    icon={
+                      file.type?.startsWith('image') ? 'solar:gallery-bold'
+                      : file.type?.startsWith('video') ? 'solar:video-frame-play-bold'
+                      : 'solar:file-text-bold'
+                    }
+                    className={`text-xl ${
+                      file.type?.startsWith('image') ? 'text-blue-500'
+                      : file.type?.startsWith('video') ? 'text-purple-500'
+                      : 'text-orange-500'
+                    }`}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-800 truncate">{file.originalName}</p>
+                  <p className="text-xs text-gray-400">
+                    {file.type?.startsWith('image') ? 'Image'
+                      : file.type?.startsWith('video') ? 'Video'
+                      : 'Document'}
+                    {file.size && ` • ${(file.size / 1024 / 1024).toFixed(1)}MB`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                  className="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors"
+                >
+                  <Icon icon="solar:close-bold" className="text-sm" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => { setSubmitModal(null); setWorkLink(''); setUploadedFiles([]) }}
+            className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl border border-purple-100 font-semibold text-gray-600 hover:bg-purple-50 hover:border-primary transition-all"
+          >
+            <Icon icon="solar:close-circle-linear" className="text-lg" />
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmitWork}
+            disabled={uploading || (!workLink.trim() && uploadedFiles.length === 0)}
+            className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-purple-300/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            <Icon icon="solar:upload-bold" className="text-lg" />
+            Submit Work
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* ⚖️ Dispute Modal */}
 
