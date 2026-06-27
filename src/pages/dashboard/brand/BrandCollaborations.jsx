@@ -499,6 +499,7 @@ export default function BrandCollaborations() {
                                 href={file.url}
                                 target="_blank"
                                 rel="noreferrer"
+                                download={file.originalName} 
                                 className="text-xs text-purple-600 font-bold hover:underline flex items-center gap-1"
                               >
                                 <Icon icon="solar:download-bold" />
@@ -530,6 +531,7 @@ export default function BrandCollaborations() {
                                 href={file.url}
                                 target="_blank"
                                 rel="noreferrer"
+                                download={file.originalName} 
                                 className="text-xs text-purple-600 font-bold hover:underline flex items-center gap-1"
                               >
                                 <Icon icon="solar:download-bold" />
